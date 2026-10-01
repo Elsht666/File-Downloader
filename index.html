@@ -129,14 +129,17 @@
         width: 340px;
         position: sticky;
         top: clamp(32px, 6vw, 64px);
-        background: #fbfcfe;             /* 与右侧输入框同款底色 */
-        border: 1px solid var(--border); /* 与右侧输入框同款外边框 */
+        background: rgba(251, 252, 254, .72);
+        border: 1px solid rgba(255, 255, 255, .5);
         border-radius: var(--radius-md);
         padding: 16px 14px 14px;
         max-height: calc(100vh - 112px);
         overflow-y: auto;
-        scrollbar-width: none;          /* Firefox：隐藏滚动条，保留滚轮滚动 */
+        scrollbar-width: none;
         -ms-overflow-style: none;
+        backdrop-filter: blur(20px) saturate(1.6);
+        -webkit-backdrop-filter: blur(20px) saturate(1.6);
+        box-shadow: 0 10px 30px rgba(15, 23, 42, .1);
     }
     .sidebar::-webkit-scrollbar { width: 0; height: 0; display: none; }
     .sidebar-head {
@@ -178,20 +181,43 @@
     .speed-summary b { color: var(--fg); font-weight: 700; }
     .speed-btn {
         flex: none;
-        height: 26px;
-        padding: 0 10px;
+        height: 28px;
+        padding: 0 14px;
         font-size: 11px;
-        font-weight: 700;
-        color: #fff;
-        background: linear-gradient(135deg, #5b7cfa, var(--accent-deep));
-        border-radius: 999px;
+        font-weight: 500;
+        color: #e2e8f0;
+        background: rgba(0, 0, 0, .35);
+        border: 1px solid rgba(255, 255, 255, .12);
+        border-radius: 12px;
         display: inline-flex;
         align-items: center;
         gap: 4px;
-        box-shadow: 0 3px 8px -3px rgba(59, 91, 219, .5);
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        backdrop-filter: blur(20px) saturate(1.6);
+        -webkit-backdrop-filter: blur(20px) saturate(1.6);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 2px 6px rgba(0, 0, 0, .2);
+        transition: transform .18s cubic-bezier(.2,.9,.3,1.2), box-shadow .25s, border-color .25s, color .25s, background .25s;
     }
-    .speed-btn:hover:not(:disabled) { transform: translateY(-1px); filter: saturate(1.1); }
+    .speed-btn::before {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        width: 0;
+        height: 2px;
+        background: #4eff4e;
+        transform: translateX(-50%);
+        transition: width .3s;
+        box-shadow: 0 0 8px #4eff4e;
+    }
+    .speed-btn:hover:not(:disabled) {
+        transform: translateY(-3px) scale(1.05);
+    }
+    .speed-btn:hover:not(:disabled)::before { width: 60%; }
     .speed-btn:active:not(:disabled) { transform: scale(.97); }
+    .speed-btn:disabled { opacity: .6; cursor: default; }
     .method-speed {
         margin-left: auto;
         flex: none;
@@ -239,14 +265,36 @@
         flex-direction: column;
         gap: 0;
         padding: 8px 10px 9px;
-        border: 2px solid transparent;
+        border: 1px solid rgba(255, 255, 255, .4);
         border-radius: var(--radius-md);
         cursor: pointer;
-        transition: border-color .15s, background .15s, transform .15s;
+        transition: border-color .15s, background .15s, transform .18s cubic-bezier(.2,.9,.3,1.2), box-shadow .18s;
         -webkit-user-select: none;
         user-select: none;
+        background: linear-gradient(145deg, rgba(180, 195, 220, .25), rgba(180, 195, 220, .08));
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 2px 6px rgba(15, 23, 42, .08);
     }
-    .method-item:hover:not(.active) { background: var(--accent-soft); }
+    .method-item:hover:not(.active) {
+        background: linear-gradient(145deg, rgba(180, 195, 220, .35), rgba(180, 195, 220, .15));
+        transform: translateY(-2px);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), 0 6px 14px rgba(15, 23, 42, .12);
+    }
+    .method-item::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        width: 0;
+        height: 2.5px;
+        border-radius: 2px;
+        background: #a3e635;
+        transform: translateX(-50%);
+        transition: width .3s;
+        box-shadow: 0 0 8px rgba(163, 230, 53, .5);
+    }
+    .method-item:hover:not(.active)::after {
+        width: 50%;
+    }
     .method-item input { position: absolute; opacity: 0; pointer-events: none; }
     .method-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
     .method-num {
@@ -855,7 +903,7 @@
     <aside class="sidebar">
         <div class="sidebar-head">
             <span>加速通道</span>
-            <button id="btnSpeed" class="speed-btn" type="button">⇅ 测速排序</button>
+            <button id="btnSpeed" class="speed-btn" type="button">点击测速</button>
         </div>
         <div class="speed-summary" id="speedSummary">点击「⇅ 测速排序」开始测速</div>
         <div class="method-list" id="methodList" role="radiogroup" aria-label="选择加速通道"></div>
