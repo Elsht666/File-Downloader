@@ -1481,27 +1481,57 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
             return u.href;
         }
 
-        /* Xget 通道：按平台改写域名前缀（gh/gl/hf），路径原样保留。
-           GitHub: https://github.com/o/r/... → https://xget.xi-xu.me/gh/o/r/... */
+        /* Xget 通道：按平台选前缀（gh / gl / hf / gist），并把"网页"形式的文件地址
+          改写成 Xget 能直接下发的 raw 地址：
+            github.com/o/r/blob/main/a.rar          → /gh/o/r/raw/refs/heads/main/a.rar
+            github.com/o/r/raw/main/a.rar           → /gh/o/r/raw/refs/heads/main/a.rar
+            raw.githubusercontent.com/o/r/main/a.rar→ /gh/o/r/raw/refs/heads/main/a.rar
+            gitlab.com/o/r/-/blob/main/a.rar        → /gl/o/r/-/raw/main/a.rar
+          其余路径（release 资产 / archive / 页面）原样拼接。
+          限制：blob 链接里分支名按第一段处理，分支名含 / 的仓库请直接粘 raw 直链。 */
         function xgetUrl(url, base) {
             var u;
             try { u = new URL(url); } catch (e) { return ''; }
             var h = u.hostname.toLowerCase();
             var path = u.pathname;
             var seg = '';
-            if (h === 'github.com' || h === 'gist.github.com') {
+            var qs = u.search ? u.search.replace(/([?&])raw=(true|1)/i, '$1').replace(/[?&]$/, '') : '';
+            if (qs === '?') qs = '';
+
+            if (h === 'github.com') {
                 seg = 'gh';
+                var mb = path.match(/^\/([^\/]+)\/([^\/]+)\/(?:blob|raw)\/(?!refs\/(?:heads|tags)\/)(.+)$/);
+                if (mb) {
+                    var bp = mb[3].split('/');
+                    var br = bp.shift();
+                    if (br && bp.length) {
+                        path = '/' + mb[1] + '/' + mb[2] + '/raw/refs/heads/' + br + '/' + bp.join('/');
+                    }
+                }
             } else if (h === 'raw.githubusercontent.com') {
                 seg = 'gh';
-                var m = path.match(/^\/([^\/]+)\/([^\/]+)\/(.+)$/);
-                if (m) path = '/' + m[1] + '/' + m[2] + '/raw/' + m[3];
+                var mr = path.match(/^\/([^\/]+)\/([^\/]+)\/([^\/]+)\/(.+)$/);
+                if (mr) {
+                    path = '/' + mr[1] + '/' + mr[2] + '/raw/refs/heads/' + mr[3] + '/' + mr[4];
+                }
             } else if (h === 'gitlab.com') {
                 seg = 'gl';
+                var mg = path.match(/^\/([^\/]+)\/([^\/]+)\/-\/blob\/(.+)$/);
+                if (mg) {
+                    var gp = mg[3].split('/');
+                    var gb = gp.shift();
+                    if (gb && gp.length) {
+                        path = '/' + mg[1] + '/' + mg[2] + '/-/raw/' + gb + '/' + gp.join('/');
+                    }
+                }
             } else if (h === 'huggingface.co') {
                 seg = 'hf';
+            } else if (h === 'gist.github.com') {
+                seg = 'gist';
             }
+
             if (!seg) return '';
-            return (base || 'https://xget.xi-xu.me/').replace(/\/+$/, '') + '/' + seg + path + u.search;
+            return (base || 'https://xget.xi-xu.me/').replace(/\/+$/, '') + '/' + seg + path + qs;
         }
 
         function testUrlFor(c) {
@@ -1859,6 +1889,7 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
     var sourceNote = document.getElementById('sourceNote');
     var cleanedOnce = false;   // 本次是否发生过代理前缀清洗
     var cleanUrl = '';         // 清洗后的纯净原始链接
+    var blobConverted = false; // 本次是否把 GitHub blob 网页地址转成了文件直链
 
     function showError(msg) {
         errorBox.textContent = msg;
@@ -1880,6 +1911,7 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
         linkVisit.href = data.preview;
         var note = data.source ? '来源：' + data.source : '';
         if (cleanedOnce) note = (note ? note + ' · ' : '') + '已自动清洗代理前缀';
+        if (blobConverted) note = (note ? note + ' · ' : '') + 'GitHub 网页地址已转为文件直链';
         if (resolvedNote) note = (note ? note + ' · ' : '') + resolvedNote;
         sourceNote.textContent = note;
         resultCard.classList.remove('hidden');
@@ -1966,6 +1998,26 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
         return s;
     }
 
+    /* GitHub 文件页 → 真实文件直链：
+       blob / raw 是"网页"，任何前缀代理代理出来的都是 GitHub HTML 页面而不是文件，
+       必须先转成 raw 真实路径再交给各通道：
+         github.com/o/r/blob/main/a.rar → github.com/o/r/raw/refs/heads/main/a.rar
+       限制：ref 按第一段处理且统一按分支（refs/heads）拼接；标签 ref 请粘贴 release 直链。 */
+    function githubFileUrl(url) {
+        var u;
+        try { u = new URL(url); } catch (e) { return url; }
+        if (u.hostname.toLowerCase() !== 'github.com') return url;
+        var m = u.pathname.match(/^\/([^\/]+)\/([^\/]+)\/(?:blob|raw)\/(?!refs\/(?:heads|tags)\/)([^\/]+)\/(.+)$/);
+        if (!m) return url;
+        u.pathname = '/' + m[1] + '/' + m[2] + '/raw/refs/heads/' + m[3] + '/' + m[4];
+        u.hash = '';
+        try {
+            var sp = new URLSearchParams(u.search);
+            if (sp.has('raw')) { sp.delete('raw'); var qs = sp.toString(); u.search = qs ? '?' + qs : ''; }
+        } catch (e) { /* 忽略查询参数清理失败 */ }
+        return u.href;
+    }
+
     /* 当前选中的代理通道（含类型）：读取左侧栏方法列表 */
     function currentChannel() {
         var checked = document.querySelector('#methodList input:checked');
@@ -1980,28 +2032,57 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
         else u.hostname = 'kkgithub.com';
         return u.href;
     }
-
-    /* Xget 通道：按平台改写前缀（gh / gl / hf），路径原样保留。
-       与左侧测速脚本内的 xgetUrl 保持一致，改动请同步两处。 */
+    /* Xget 通道：按平台选前缀（gh / gl / hf / gist），并把"网页"形式的文件地址
+      改写成 Xget 能直接下发的 raw 地址：
+        github.com/o/r/blob/main/a.rar          → /gh/o/r/raw/refs/heads/main/a.rar
+        github.com/o/r/raw/main/a.rar           → /gh/o/r/raw/refs/heads/main/a.rar
+        raw.githubusercontent.com/o/r/main/a.rar→ /gh/o/r/raw/refs/heads/main/a.rar
+        gitlab.com/o/r/-/blob/main/a.rar        → /gl/o/r/-/raw/main/a.rar
+      其余路径（release 资产 / archive / 页面）原样拼接。
+      限制：blob 链接里分支名按第一段处理，分支名含 / 的仓库请直接粘 raw 直链。 */
     function xgetUrl(url, base) {
         var u;
         try { u = new URL(url); } catch (e) { return ''; }
         var h = u.hostname.toLowerCase();
         var path = u.pathname;
         var seg = '';
-        if (h === 'github.com' || h === 'gist.github.com') {
+        var qs = u.search ? u.search.replace(/([?&])raw=(true|1)/i, '$1').replace(/[?&]$/, '') : '';
+        if (qs === '?') qs = '';
+
+        if (h === 'github.com') {
             seg = 'gh';
+            var mb = path.match(/^\/([^\/]+)\/([^\/]+)\/(?:blob|raw)\/(?!refs\/(?:heads|tags)\/)(.+)$/);
+            if (mb) {
+                var bp = mb[3].split('/');
+                var br = bp.shift();
+                if (br && bp.length) {
+                    path = '/' + mb[1] + '/' + mb[2] + '/raw/refs/heads/' + br + '/' + bp.join('/');
+                }
+            }
         } else if (h === 'raw.githubusercontent.com') {
             seg = 'gh';
-            var m = path.match(/^\/([^\/]+)\/([^\/]+)\/(.+)$/);
-            if (m) path = '/' + m[1] + '/' + m[2] + '/raw/' + m[3];
+            var mr = path.match(/^\/([^\/]+)\/([^\/]+)\/([^\/]+)\/(.+)$/);
+            if (mr) {
+                path = '/' + mr[1] + '/' + mr[2] + '/raw/refs/heads/' + mr[3] + '/' + mr[4];
+            }
         } else if (h === 'gitlab.com') {
             seg = 'gl';
+            var mg = path.match(/^\/([^\/]+)\/([^\/]+)\/-\/blob\/(.+)$/);
+            if (mg) {
+                var gp = mg[3].split('/');
+                var gb = gp.shift();
+                if (gb && gp.length) {
+                    path = '/' + mg[1] + '/' + mg[2] + '/-/raw/' + gb + '/' + gp.join('/');
+                }
+            }
         } else if (h === 'huggingface.co') {
             seg = 'hf';
+        } else if (h === 'gist.github.com') {
+            seg = 'gist';
         }
+
         if (!seg) return '';
-        return (base || 'https://xget.xi-xu.me/').replace(/\/+$/, '') + '/' + seg + path + u.search;
+        return (base || 'https://xget.xi-xu.me/').replace(/\/+$/, '') + '/' + seg + path + qs;
     }
 
     /* 拼接加速链接：按通道类型生成 */
@@ -2125,9 +2206,13 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
 
         cleanedOnce = false;
         resolvedNote = '';
+        blobConverted = false;
         var target;
         try {
             cleanUrl = normalizeUrl(cleanProxyUrl(raw));
+            var before = cleanUrl;
+            cleanUrl = githubFileUrl(cleanUrl);
+            blobConverted = cleanUrl !== before;
             target = new URL(cleanUrl);
         } catch (e) {
             showError('网址格式不正确，请检查后重试');
