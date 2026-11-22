@@ -1336,6 +1336,7 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
                     <li>想要更高速率：多数加速站的高速节点需注册并购买 <b>VIP / 会员</b>，免费公益通道通常限速、不稳定</li>
                     <li>如果你有自己搭的或买的通路：选「<span class="hl">自定义前缀</span>」通道，在下方输入你的加速地址即可</li>
                     <li>Xget 通道对 <b>GitHub / GitLab / HuggingFace</b> 生效，其他站点会自动改用通用前缀通道</li>
+                    <li><b>gh-proxy / ghproxy / GitHub 专用</b> 通道只代理 GitHub 域名：粘贴非 GitHub 直链（如官网 exe/zip）会自动改用通用通道，否则会打开通道官网网页而不是下载</li>
                 </ul>
             </div>
         </div>
@@ -1503,10 +1504,10 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
         // type: prefix=前缀拼接 | replace=域名替换 | custom=自定义前缀
         var PROXY_CHANNELS = [
             { type: 'prefix',   name: '通用（小帅）',       value: 'https://g.z321.cc.cd/',     desc: 'https://g.z321.cc.cd/',     note: '你的小帅通道，任意直链' },
-            { type: 'prefix',   name: 'GitHub 专用（小帅）', value: 'https://777.z321.cc.cd/',   desc: 'https://777.z321.cc.cd/',   note: '你的小帅通道，GitHub 文件' },
+            { type: 'prefix',   name: 'GitHub 专用（小帅）', value: 'https://777.z321.cc.cd/',   desc: 'https://777.z321.cc.cd/',   note: '你的小帅通道，GitHub 文件', ghOnly: true },
             { type: 'xget',     name: 'Xget 加速',          value: 'https://xget.xi-xu.me/',    desc: 'https://xget.xi-xu.me/gh/', note: 'GitHub / GitLab / HuggingFace' },
-            { type: 'prefix',   name: 'gh-proxy.com',       value: 'https://gh-proxy.com/',     desc: 'https://gh-proxy.com/',     note: 'Release / Raw / Archive / Clone' },
-            { type: 'prefix',   name: 'ghproxy.net',        value: 'https://ghproxy.net/',      desc: 'https://ghproxy.net/',      note: 'Release / Archive / 单文件' },
+            { type: 'prefix',   name: 'gh-proxy.com',       value: 'https://gh-proxy.com/',     desc: 'https://gh-proxy.com/',     note: 'Release / Raw / Archive / Clone（仅 GitHub）', ghOnly: true },
+            { type: 'prefix',   name: 'ghproxy.net',        value: 'https://ghproxy.net/',      desc: 'https://ghproxy.net/',      note: 'Release / Archive / 单文件（仅 GitHub）', ghOnly: true },
             { type: 'prefix',   name: 'gh-proxy.at9.net',   value: 'https://gh-proxy.at9.net/', desc: 'https://gh-proxy.at9.net/', note: 'Release / Raw / 直链（部分链路待验证）' },
             { type: 'custom',   name: '自定义前缀',          value: '__custom__',               desc: '粘贴任意加速前缀',           note: '自己填加速站前缀，防单点失效' }
         ];
@@ -1711,7 +1712,7 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
                         + ' data-ms="' + (c.ms || 0) + '"'
                         + ' data-status="' + status + '"';
                 html += '<label class="method-item' + (isChecked ? ' active' : '') + '"' + dataAttrs + '>' +
-                        '<input type="radio" name="method" value="' + c.value + '" data-type="' + c.type + '"' + (isChecked ? ' checked' : '') + '>' +
+                        '<input type="radio" name="method" value="' + c.value + '" data-type="' + c.type + '"' + (c.ghOnly ? ' data-ghonly="1"' : '') + (isChecked ? ' checked' : '') + '>' +
                         '<span class="method-row"><span class="method-num">通路' + (j + 1) + '</span><span class="method-name">' + c.name + '</span>' +
                         (badge ? '<span class="' + cls + '">' + badge + '</span>' : '') +
                         '</span>' +
@@ -1943,7 +1944,7 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
     var cleanUrl = '';         // 清洗后的纯净原始链接
     var blobConverted = false; // 本次是否把 GitHub blob 网页地址转成了文件直链
     var gen = 0;               // 提取轮次：清空后作废仍在返回途中的请求结果
-    var xgetFallback = false;  // 本次拼接是否发生了 Xget → 通用通道的自动回退
+    var fallbackNote = '';     // 本次拼接发生的通道回退说明（如不支持该站点改用通用通道）
     var lastResultNote = '';   // 最近一次结果卡的提示文案（复制/下载时用于追加回退提示）
 
     function showError(msg) {
@@ -2123,11 +2124,25 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
         return u.href;
     }
 
-    /* 当前选中的代理通道（含类型）：读取左侧栏方法列表 */
+    /* 当前选中的代理通道（含类型 / 是否 GitHub 专用）：读取左侧栏方法列表 */
     function currentChannel() {
         var checked = document.querySelector('#methodList input:checked');
-        if (!checked) return { type: 'prefix', value: 'https://g.z321.cc.cd/' };
-        return { type: checked.getAttribute('data-type'), value: checked.value };
+        if (!checked) return { type: 'prefix', value: 'https://g.z321.cc.cd/', ghOnly: false };
+        return {
+            type: checked.getAttribute('data-type'),
+            value: checked.value,
+            ghOnly: checked.getAttribute('data-ghonly') === '1'
+        };
+    }
+
+    /* 是否 GitHub 系域名：gh-proxy 类通道只代理 GitHub 域名，
+       拼接非 GitHub 直链会返回其官网 HTML 页面（表现为"跳转网页而不下载"） */
+    function isGitHubHost(url) {
+        var u;
+        try { u = new URL(url); } catch (e) { return false; }
+        var h = u.hostname.toLowerCase();
+        return h === 'github.com' || /\.github\.com$/.test(h) ||
+               h === 'githubusercontent.com' || /\.githubusercontent\.com$/.test(h);
     }
 
     /* 域名替换型通道：github.com → kkgithub.com，raw 走 raw.kkgithub.com */
@@ -2192,7 +2207,7 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
 
     /* 拼接加速链接：按通道类型生成 */
     function buildAccelLink() {
-        xgetFallback = false;
+        fallbackNote = '';
         var ch = currentChannel();
         if (ch.type === 'custom') {
             var p = (document.getElementById('customPrefix') || {}).value;
@@ -2205,7 +2220,15 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
             var xl = xgetUrl(cleanUrl, ch.value);
             if (xl) return xl;
             /* Xget 不支持该站点：自动回退到通用前缀通道，保证链接始终可用（与帮助弹窗说明一致） */
-            xgetFallback = true;
+            fallbackNote = 'Xget 不支持该站点，已自动改用通用通道';
+            return 'https://g.z321.cc.cd/' + cleanUrl;
+        }
+        /* GitHub 专用通道（gh-proxy / ghproxy / 777 等）只代理 GitHub 域名：
+           拼接非 GitHub 直链会拿到通道官网的 404 网页而非文件，
+           自动回退到通用前缀通道，避免出现"点了却跳到网页不下载" */
+        if (ch.ghOnly && !isGitHubHost(cleanUrl)) {
+            fallbackNote = ch.value.replace(/\/+$/, '').replace(/^https?:\/\//, '') +
+                           ' 仅支持 GitHub 链接，已自动改用通用通道';
             return 'https://g.z321.cc.cd/' + cleanUrl;
         }
         if (ch.type === 'prefix') return ch.value + cleanUrl;
@@ -2213,11 +2236,10 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
         return ch.value + cleanUrl;
     }
 
-    /* 复制 / 下载后刷新提示：若发生 Xget 自动回退则告知用户实际使用的通道 */
+    /* 复制 / 下载后刷新提示：若发生通道自动回退则告知用户实际使用的通道 */
     function syncFallbackNote() {
-        if (!xgetFallback) return;
-        var tip = 'Xget 不支持该站点，已自动改用通用通道';
-        sourceNote.textContent = lastResultNote ? (lastResultNote + ' · ' + tip) : tip;
+        if (!fallbackNote) return;
+        sourceNote.textContent = lastResultNote ? (lastResultNote + ' · ' + fallbackNote) : fallbackNote;
     }
 
     /* 校验当前通道是否支持该链接，返回 '' 表示支持，否则返回错误提示 */
