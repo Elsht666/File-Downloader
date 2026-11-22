@@ -921,10 +921,11 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
 .link-hint.gh     { background:#eaf1ff; border-color:#a9c2f5; color:#1b3d86; }
 .link-hint.general{ background:#e7f7ee; border-color:#a4dcbc; color:#0c6541; }
 .link-hint.multi  { background:#f2eaff; border-color:#cfb4f2; color:#5f2fa0; }
-.link-hint .lh-title {
-    display: flex; align-items: center; gap: 7px;
-    font-weight: 800; font-size: 13.5px; margin-bottom: 6px;
+.link-hint .lh-line {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    font-weight: 700; font-size: 12.5px;
 }
+.link-hint .lh-line .host { font-weight: 800; }
 .link-hint .lh-badge {
     flex: none; font-size: 10px; font-weight: 800; letter-spacing: .04em;
     padding: 2px 8px; border-radius: 999px; color: #fff;
@@ -932,15 +933,22 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
 .link-hint.gh     .lh-badge { background:#2b56c9; }
 .link-hint.general .lh-badge { background:#0b7a4d; }
 .link-hint.multi  .lh-badge { background:#7a3fc9; }
-.link-hint .lh-body b { font-weight: 800; }
-.link-hint .lh-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+/* 可点击的通道标签：点击即选中左侧对应通道 */
+.link-hint .lh-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
 .link-hint .lh-chip {
-    font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
-    background: rgba(255,255,255,.8); border: 1px solid rgba(0,0,0,.07);
+    font-size: 11px; font-weight: 700; padding: 5px 11px; border-radius: 999px;
+    background: #fff; border: 1px solid rgba(0,0,0,.1);
+    cursor: pointer; user-select: none;
+    display: inline-flex; align-items: center; gap: 5px;
+    transition: transform .14s, box-shadow .14s;
 }
-.link-hint.gh     .lh-chip { color:#2b56c9; border-color:#c3d5ff; }
-.link-hint.general .lh-chip { color:#0b7a4d; border-color:#bfe6d1; }
-.link-hint.multi  .lh-chip { color:#7a3fc9; border-color:#dfc9ff; }
+.link-hint .lh-chip::before { content:''; width:6px; height:6px; border-radius:50%; background:currentColor; }
+.link-hint .lh-chip:hover  { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,.13); }
+.link-hint .lh-chip:active { transform: translateY(0); }
+.link-hint .lh-chip.picked { outline: 2px solid currentColor; outline-offset: 1px; }
+.link-hint .lh-chip.cat-gh    { color:#2b56c9; border-color:#c3d5ff; }
+.link-hint .lh-chip.cat-gen   { color:#0b7a4d; border-color:#bfe6d1; }
+.link-hint .lh-chip.cat-multi { color:#7a3fc9; border-color:#dfc9ff; }
 .link-hint .lh-warn { margin-top: 8px; font-size: 11px; opacity: .9; }
 
 /* ============================================================
@@ -1415,7 +1423,7 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
                     <li>如果你有自己搭的或买的通路：选「<span class="hl">自定义前缀</span>」通道，在下方输入你的加速地址即可</li>
                     <li>Xget 通道对 <b>GitHub / GitLab / HuggingFace</b> 生效，其他站点会自动改用通用前缀通道</li>
                     <li><b>gh-proxy / ghproxy / GitHub 专用</b> 通道只代理 GitHub 域名：粘贴非 GitHub 直链（如官网 exe/zip）会自动改用通用通道，否则会打开通道官网网页而不是下载</li>
-                    <li>提取成功后，结果卡会显示<b>链接类型</b>并推荐可用通道；左侧通道按颜色区分：<b>蓝=GitHub 专用、绿=通用直链、紫=多平台</b>，不适用的通道会淡化并显示删除线</li>
+                    <li>提取成功后，结果卡会简短显示链接来源并列出<b>可选通道标签</b>，点一下标签即可选中左侧对应通道；左侧通道按颜色区分：<b>蓝=GitHub 专用、绿=通用直链、紫=多平台</b>，不适用的通道会淡化并显示删除线</li>
                     <li>每次<b>提取或测速后</b>会自动把"适用于当前链接"的通道排到上方，并自动选中其中速度最快的一个；无关通道沉到下方</li>
                 </ul>
             </div>
@@ -2079,6 +2087,20 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
     var btnClear = document.getElementById('btnClear');
     var linkVisit = document.getElementById('linkVisit');
     var linkHint = document.getElementById('linkHint');
+
+    /* 点击提示卡里的通道标签 → 选中左侧对应通道（事件委托，绑定一次） */
+    if (linkHint) {
+        linkHint.addEventListener('click', function(e) {
+            var chip = (e.target && e.target.closest) ? e.target.closest('.lh-chip') : null;
+            if (!chip) return;
+            var value = chip.getAttribute('data-value');
+            if (!value || !selectChannelByValue(value)) return;
+            var all = linkHint.querySelectorAll('.lh-chip');
+            for (var i = 0; i < all.length; i++) all[i].classList.remove('picked');
+            chip.classList.add('picked');
+        });
+    }
+
     var cleanedOnce = false;   // 本次是否发生过代理前缀清洗
     var cleanUrl = '';         // 清洗后的纯净原始链接
     var blobConverted = false; // 本次是否把 GitHub blob 网页地址转成了文件直链
@@ -2200,29 +2222,52 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
         }
     }
 
+    /* 按链接类型推荐的具体通道；点击标签即选中左侧对应项（value 与 PROXY_CHANNELS 一致） */
+    var HINT_RECOMMEND = {
+        gh: [
+            { name: 'GitHub 专用（小帅）', value: 'https://777.z321.cc.cd/', cat: 'gh' },
+            { name: 'gh-proxy.com',       value: 'https://gh-proxy.com/',     cat: 'gh' },
+            { name: '通用（小帅）',        value: 'https://g.z321.cc.cd/',     cat: 'gen' },
+            { name: 'Xget 加速',          value: 'https://xget.xi-xu.me/',    cat: 'multi' }
+        ],
+        multi: [
+            { name: 'Xget 加速',     value: 'https://xget.xi-xu.me/', cat: 'multi' },
+            { name: '通用（小帅）',  value: 'https://g.z321.cc.cd/',  cat: 'gen' }
+        ],
+        general: [
+            { name: '通用（小帅）',      value: 'https://g.z321.cc.cd/',     cat: 'gen' },
+            { name: 'gh-proxy.at9.net', value: 'https://gh-proxy.at9.net/', cat: 'gen' },
+            { name: 'Xget 加速',        value: 'https://xget.xi-xu.me/',    cat: 'multi' }
+        ]
+    };
+
+    /* 点击标签：选中左侧对应通道并触发 change（联动高亮 / 自定义输入行 / 链接刷新） */
+    function selectChannelByValue(value) {
+        var inputs = document.querySelectorAll('#methodList input[name="method"]');
+        for (var i = 0; i < inputs.length; i++) {
+            if (inputs[i].value === value) {
+                inputs[i].checked = true;
+                var ml = document.getElementById('methodList');
+                if (ml) ml.dispatchEvent(new Event('change'));
+                return true;
+            }
+        }
+        return false;
+    }
+
     function renderLinkHint() {
         if (!linkHint) return;
         if (!cleanUrl) { linkHint.className = 'link-hint hidden'; linkHint.innerHTML = ''; return; }
         var t = detectLinkType(cleanUrl);
-        var host = '';
+        var host = cleanUrl;
         try { host = new URL(cleanUrl).hostname; } catch (e) {}
-        var title, body, chips;
-        if (t.key === 'gh') {
-            title = '已识别为 GitHub 链接';
-            body = '该链接来自 <b>' + host + '</b>。左侧蓝色标记的 <b>GitHub 专用通道</b>（gh-proxy / ghproxy / GitHub专用）可直接加速；绿色通用通道、紫色 Xget 也可用。';
-            chips = ['GitHub 专用', '通用直链', 'Xget 多平台'];
-        } else if (t.key === 'multi') {
-            title = '已识别为 ' + t.label;
-            body = '该链接来自 <b>' + host + '</b>。GitHub 专用通道不适用；请选左侧紫色标记的 <b>Xget 多平台通道</b>，或绿色通用通道。';
-            chips = ['Xget 多平台', '通用直链'];
-        } else {
-            title = '已识别为普通直链（非 GitHub）';
-            body = '该链接来自 <b>' + host + '</b>，不是 GitHub 域名。蓝色标记的 <b>GitHub 专用通道</b>无法加速（会打开通道官网网页而不是下载）；请选左侧绿色标记的 <b>通用直链通道</b>。紫色 Xget 也可用（会自动回退到通用通道）。';
-            chips = ['通用直链（小帅）', 'gh-proxy.at9.net', 'Xget 多平台', '自定义前缀'];
-        }
-        var html = '<div class="lh-title"><span class="lh-badge">' + t.label + '</span>' + title + '</div>' +
-                   '<div class="lh-body">' + body + '</div>' +
-                   '<div class="lh-chips">' + chips.map(function(c) { return '<span class="lh-chip">' + c + '</span>'; }).join('') + '</div>';
+        var rec = HINT_RECOMMEND[t.key] || HINT_RECOMMEND.general;
+        var html = '<div class="lh-line"><span class="lh-badge">' + t.label +
+                   '</span>来自 <span class="host">' + host + '</span>，可选择以下通道：</div>' +
+                   '<div class="lh-chips">' + rec.map(function(c) {
+                       return '<button type="button" class="lh-chip cat-' + c.cat +
+                              '" data-value="' + c.value + '" title="点击选中左侧通道">' + c.name + '</button>';
+                   }).join('') + '</div>';
         if (fallbackNote) html += '<div class="lh-warn">⚠ ' + fallbackNote + '</div>';
         linkHint.className = 'link-hint ' + t.cls;
         linkHint.innerHTML = html;
