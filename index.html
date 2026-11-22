@@ -1834,14 +1834,15 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
 
         function speedGroup(x) {
             if (x.ok) return (x.kbps > 0) ? 3 : 2;   // 有吞吐 / 仅连上
-            if (x.corsOnly) return 1;                 // CORS 受限但可下载
+            if (x.corsOnly) return 2;                 // CORS 受限：JS 测不到速度，但链接可直接下载 → 视为可用
             return 0;                                 // 不可用 / 未知
         }
-        /* 通道是否适用于当前链接类型：不适用→下排；未提取链接→全部适用 */
+        /* 通道是否适用于当前链接类型：不适用→下排；未提取链接→全部适用
+           Xget(multi) 对不支持的站点会自动回退通用通道，任何链接都能下载 → 恒适用 */
         function channelApplicable(cat, typeKey) {
             if (!typeKey) return true;
             if (cat === 'gh') return typeKey === 'gh';
-            if (cat === 'multi') return typeKey === 'gh' || typeKey === 'multi';
+            if (cat === 'multi') return true;   // Xget 全平台可用（不支持的站点回退通用通道）
             return true;   // 通用 / 自定义：任何链接都适用
         }
         window.__dlChannelApplicable = channelApplicable;
@@ -1850,27 +1851,33 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
             opts = opts || {};
             var typeKey = window.__dlLinkType;
             PROXY_CHANNELS.sort(function(a, b) {
+                /* 0) 自定义前缀不参与排序，永远置底 */
+                var ca = channelCat(a) === 'custom', cb = channelCat(b) === 'custom';
+                if (ca !== cb) return ca ? 1 : -1;
                 /* 1) 适用当前链接的排前面，无关通路下排 */
                 var aa = channelApplicable(channelCat(a), typeKey) ? 1 : 0;
                 var bb = channelApplicable(channelCat(b), typeKey) ? 1 : 0;
                 if (aa !== bb) return bb - aa;
-                /* 2) 组内再按速度：可用有吞吐 → 仅连接 → CORS → 不可用 */
+                /* 2) 组内再按速度：有吞吐 → 仅连接/CORS可下载 → 不可用 */
                 var ga = speedGroup(a), gb = speedGroup(b);
                 if (ga !== gb) return gb - ga;
                 if (ga === 3) {
                     if (a.kbps !== b.kbps) return b.kbps - a.kbps;
                     return (a.ttfb || 0) - (b.ttfb || 0);
                 }
-                if (ga === 2 || ga === 1) return (a.ttfb || 0) - (b.ttfb || 0);
+                if (ga === 2) return (a.ttfb || 0) - (b.ttfb || 0);
                 return 0;
             });
             renderMethods();   // 内部派发 channelsrebuilt → 主脚本重打适用/不适用标记
 
-            /* 自动选中"适用且最快可用"的通道（未填前缀的自定义项 ok=false 会跳过） */
+            /* 是否可下载：ok=连上；corsOnly=CORS 仅拦 JS 测速、链接照常可下载；自定义未填前缀不算 */
+            function usable(c) { return (c.ok || c.corsOnly) && channelCat(c) !== 'custom'; }
+
+            /* 自动选中"适用且最快可下载"的通道（自定义前缀置底且不自动选中） */
             if (opts.select !== false) {
                 for (var i = 0; i < PROXY_CHANNELS.length; i++) {
                     var c = PROXY_CHANNELS[i];
-                    if (c.ok && channelApplicable(channelCat(c), typeKey)) { selectMethod(c.value); break; }
+                    if (usable(c) && channelApplicable(channelCat(c), typeKey)) { selectMethod(c.value); break; }
                 }
             }
 
@@ -1882,7 +1889,7 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
                     var fastest = null;
                     for (var j = 0; j < PROXY_CHANNELS.length; j++) {
                         var f = PROXY_CHANNELS[j];
-                        if (f.ok && f.kbps > 0 && channelApplicable(channelCat(f), typeKey)) { fastest = f; break; }
+                        if (usable(f) && f.kbps > 0 && channelApplicable(channelCat(f), typeKey)) { fastest = f; break; }
                     }
                     if (fastest) {
                         var now = new Date();
@@ -1933,7 +1940,7 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
                         else c.speedText = '连接 ' + c.ttfb + 'ms';
                     } else if (r.err === 'timeout') { c.speedText = '未知'; c.unknown = true; }
                     else if (r.err === 'noprefix') { c.speedText = '未填前缀'; }
-                    else if (r.err === 'cors') { c.speedText = 'CORS受限'; c.corsOnly = true; }
+                    else if (r.err === 'cors') { c.speedText = '可下载·CORS'; c.corsOnly = true; }
                     else { c.speedText = '未知'; c.unknown = true; }
                 });
 
@@ -2187,8 +2194,8 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
             var cat = items[i].getAttribute('data-cat') || 'gen';
             var ok = true;
             if (cat === 'gh') ok = (type.key === 'gh');
-            else if (cat === 'multi') ok = (type.key === 'gh' || type.key === 'multi');
-            /* gen 通用直链、custom 自定义：任何平台都可用 */
+            /* multi=Xget：不支持的站点会自动回退通用通道，任何链接都能下载 → 恒适用，不淡化
+               gen 通用直链、custom 自定义：任何平台都可用 */
             items[i].classList.add(ok ? 'compat' : 'incompat');
         }
     }
@@ -2210,8 +2217,8 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
             chips = ['Xget 多平台', '通用直链'];
         } else {
             title = '已识别为普通直链（非 GitHub）';
-            body = '该链接来自 <b>' + host + '</b>，不是 GitHub 域名。蓝色标记的 <b>GitHub 专用通道</b>无法加速（会打开通道官网网页而不是下载）；请选左侧绿色标记的 <b>通用直链通道</b>。';
-            chips = ['通用直链（小帅）', 'gh-proxy.at9.net', '自定义前缀'];
+            body = '该链接来自 <b>' + host + '</b>，不是 GitHub 域名。蓝色标记的 <b>GitHub 专用通道</b>无法加速（会打开通道官网网页而不是下载）；请选左侧绿色标记的 <b>通用直链通道</b>。紫色 Xget 也可用（会自动回退到通用通道）。';
+            chips = ['通用直链（小帅）', 'gh-proxy.at9.net', 'Xget 多平台', '自定义前缀'];
         }
         var html = '<div class="lh-title"><span class="lh-badge">' + t.label + '</span>' + title + '</div>' +
                    '<div class="lh-body">' + body + '</div>' +
