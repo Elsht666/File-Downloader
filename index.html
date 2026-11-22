@@ -1416,6 +1416,7 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
                     <li>Xget 通道对 <b>GitHub / GitLab / HuggingFace</b> 生效，其他站点会自动改用通用前缀通道</li>
                     <li><b>gh-proxy / ghproxy / GitHub 专用</b> 通道只代理 GitHub 域名：粘贴非 GitHub 直链（如官网 exe/zip）会自动改用通用通道，否则会打开通道官网网页而不是下载</li>
                     <li>提取成功后，结果卡会显示<b>链接类型</b>并推荐可用通道；左侧通道按颜色区分：<b>蓝=GitHub 专用、绿=通用直链、紫=多平台</b>，不适用的通道会淡化并显示删除线</li>
+                    <li>每次<b>提取或测速后</b>会自动把"适用于当前链接"的通道排到上方，并自动选中其中速度最快的一个；无关通道沉到下方</li>
                 </ul>
             </div>
         </div>
@@ -1826,6 +1827,80 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
             list.dispatchEvent(new Event('change'));
         }
 
+        /* ===== 排序：适用性优先，速度次之 =====
+           与主脚本通过 window 共享"当前链接类型"，提取完/测速完都会走这里重排并自动选中
+           __dlLinkType: 'gh' | 'multi' | 'general'，未提取为 null */
+        window.__dlLinkType = window.__dlLinkType || null;
+
+        function speedGroup(x) {
+            if (x.ok) return (x.kbps > 0) ? 3 : 2;   // 有吞吐 / 仅连上
+            if (x.corsOnly) return 1;                 // CORS 受限但可下载
+            return 0;                                 // 不可用 / 未知
+        }
+        /* 通道是否适用于当前链接类型：不适用→下排；未提取链接→全部适用 */
+        function channelApplicable(cat, typeKey) {
+            if (!typeKey) return true;
+            if (cat === 'gh') return typeKey === 'gh';
+            if (cat === 'multi') return typeKey === 'gh' || typeKey === 'multi';
+            return true;   // 通用 / 自定义：任何链接都适用
+        }
+        window.__dlChannelApplicable = channelApplicable;
+
+        function applyOrderAndSelect(opts) {
+            opts = opts || {};
+            var typeKey = window.__dlLinkType;
+            PROXY_CHANNELS.sort(function(a, b) {
+                /* 1) 适用当前链接的排前面，无关通路下排 */
+                var aa = channelApplicable(channelCat(a), typeKey) ? 1 : 0;
+                var bb = channelApplicable(channelCat(b), typeKey) ? 1 : 0;
+                if (aa !== bb) return bb - aa;
+                /* 2) 组内再按速度：可用有吞吐 → 仅连接 → CORS → 不可用 */
+                var ga = speedGroup(a), gb = speedGroup(b);
+                if (ga !== gb) return gb - ga;
+                if (ga === 3) {
+                    if (a.kbps !== b.kbps) return b.kbps - a.kbps;
+                    return (a.ttfb || 0) - (b.ttfb || 0);
+                }
+                if (ga === 2 || ga === 1) return (a.ttfb || 0) - (b.ttfb || 0);
+                return 0;
+            });
+            renderMethods();   // 内部派发 channelsrebuilt → 主脚本重打适用/不适用标记
+
+            /* 自动选中"适用且最快可用"的通道（未填前缀的自定义项 ok=false 会跳过） */
+            if (opts.select !== false) {
+                for (var i = 0; i < PROXY_CHANNELS.length; i++) {
+                    var c = PROXY_CHANNELS[i];
+                    if (c.ok && channelApplicable(channelCat(c), typeKey)) { selectMethod(c.value); break; }
+                }
+            }
+
+            var sum = document.getElementById('speedSummary');
+            if (sum) {
+                if (!speedTested) {
+                    sum.innerHTML = '点击「测速」开始测速';
+                } else {
+                    var fastest = null;
+                    for (var j = 0; j < PROXY_CHANNELS.length; j++) {
+                        var f = PROXY_CHANNELS[j];
+                        if (f.ok && f.kbps > 0 && channelApplicable(channelCat(f), typeKey)) { fastest = f; break; }
+                    }
+                    if (fastest) {
+                        var now = new Date();
+                        var hh = ('0' + now.getHours()).slice(-2);
+                        var mm = ('0' + now.getMinutes()).slice(-2);
+                        sum.innerHTML = '上次测速 ' + hh + ':' + mm + ' · 最快适用 <b>' + fastest.name + ' ' + fastest.speedText + '</b>';
+                    } else {
+                        sum.innerHTML = '测速完成 · 暂无可用通道';
+                    }
+                }
+            }
+        }
+        window.__dlApplyOrder = applyOrderAndSelect;
+        /* 提取完但还没测速时，补触发一次测速；onRequest 完成后会再自动重排+选中 */
+        window.__dlEnsureSpeed = function() {
+            if (!speedTested && btn && !testing) runSpeedTest(btn);
+        };
+
         function runSpeedTest(btn) {
             if (testing) return;   // 防止手动与自动测速并发
             testing = true;
@@ -1862,46 +1937,8 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
                     else { c.speedText = '未知'; c.unknown = true; }
                 });
 
-                // 排序：可用有吞吐(3) → 可用仅连接(2) → CORS受限可下载(1) → 不可用/未知(0)；组内按速度降序 / 连接升序
-                PROXY_CHANNELS.sort(function(a, b) {
-                    function grp(x) {
-                        if (x.ok) return (x.kbps > 0) ? 3 : 2;
-                        if (x.corsOnly) return 1;
-                        return 0;
-                    }
-                    var ga = grp(a), gb = grp(b);
-                    if (ga !== gb) return gb - ga;
-                    if (ga === 3) {
-                        if (a.kbps !== b.kbps) return b.kbps - a.kbps;
-                        return (a.ttfb || 0) - (b.ttfb || 0);
-                    }
-                    if (ga === 2 || ga === 1) return (a.ttfb || 0) - (b.ttfb || 0);
-                    return 0;
-                });
-
-                renderMethods();
-
-                // 自动选中最快可用方法（自定义未填前缀等不可用项跳过）
-                for (var i = 0; i < PROXY_CHANNELS.length; i++) {
-                    if (PROXY_CHANNELS[i].ok) { selectMethod(PROXY_CHANNELS[i].value); break; }
-                }
-
-                // 更新侧栏测速摘要：测速时间 + 当前最快通道
-                var sum = document.getElementById('speedSummary');
-                if (sum) {
-                    var fastest = null;
-                    for (var i2 = 0; i2 < PROXY_CHANNELS.length; i2++) {
-                        if (PROXY_CHANNELS[i2].ok && PROXY_CHANNELS[i2].kbps > 0) { fastest = PROXY_CHANNELS[i2]; break; }
-                    }
-                    if (fastest) {
-                        var now = new Date();
-                        var hh = ('0' + now.getHours()).slice(-2);
-                        var mm = ('0' + now.getMinutes()).slice(-2);
-                        sum.innerHTML = '上次测速 ' + hh + ':' + mm + ' · 最快 <b>' + fastest.name + ' ' + fastest.speedText + '</b>';
-                    } else {
-                        sum.innerHTML = '测速完成 · 暂无可用通道';
-                    }
-                }
+                // 适用性优先 + 速度排序 + 自动选中适用最快通道 + 更新摘要
+                applyOrderAndSelect();
 
                 btn.disabled = false;
                 if (speedLabel) speedLabel.textContent = oldText; else btn.textContent = oldText;
@@ -2075,6 +2112,9 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
         iconUrl.textContent = '';
         if (linkHint) { linkHint.className = 'link-hint hidden'; linkHint.innerHTML = ''; }
         clearChannelCompat();
+        /* 清空后恢复按纯速度排序（无链接类型约束），但不改变用户已选的通道 */
+        window.__dlLinkType = null;
+        if (window.__dlApplyOrder) window.__dlApplyOrder({ select: false });
         iconPreview.removeAttribute('src');
         iconPreview.onerror = null;
         setLoading(false);
@@ -2093,6 +2133,15 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
         iconUrl.textContent = cleanUrl || data.url;
         linkVisit.href = data.preview;
         renderLinkHint();
+
+        /* 提取完成：把链接类型写入共享状态 → 按"适用性优先"重排并自动选中适用最快通道。
+           若还没测速，补触发一次；测速完成后会再次重排+选中。
+           注意：applyOrderAndSelect 内部 renderMethods 会派发 channelsrebuilt，
+           主脚本监听器只重打 compat 标记、不会再次触发排序，避免循环。 */
+        window.__dlLinkType = detectLinkType(cleanUrl).key;
+        if (window.__dlApplyOrder) window.__dlApplyOrder();
+        if (window.__dlEnsureSpeed) window.__dlEnsureSpeed();
+
         resultCard.classList.remove('hidden');
         syncClearState();
     }
