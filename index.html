@@ -654,6 +654,52 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
     box-shadow: 0 2px 6px rgba(43, 81, 172, .45);
 }
 
+/* ===== 通道类别色：蓝=GitHub专用 / 绿=通用直链 / 紫=多平台 / 灰=自定义 ===== */
+.method-item[data-cat="gh"]     .method-num { background:#e4ecff; color:#2b56c9; }
+.method-item[data-cat="gen"]    .method-num { background:#e2f6ec; color:#0b7a4d; }
+.method-item[data-cat="multi"]  .method-num { background:#f1e8ff; color:#7a3fc9; }
+.method-item[data-cat="custom"] .method-num { background:#eceff3; color:#5a6a7a; }
+.method-item.active[data-cat="gh"]     .method-num { background:linear-gradient(150deg,#5b86ea,#2b56c9); color:#fff; box-shadow:0 2px 6px rgba(43,81,172,.45); }
+.method-item.active[data-cat="gen"]    .method-num { background:linear-gradient(150deg,#37b783,#0b7a4d); color:#fff; box-shadow:0 2px 6px rgba(11,122,77,.40); }
+.method-item.active[data-cat="multi"]  .method-num { background:linear-gradient(150deg,#9b6bea,#7a3fc9); color:#fff; box-shadow:0 2px 6px rgba(122,63,201,.40); }
+.method-item.active[data-cat="custom"] .method-num { background:linear-gradient(150deg,#8a97a5,#5a6a7a); color:#fff; }
+
+.cat-badge {
+    flex: none;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .02em;
+    padding: 1px 6px;
+    border-radius: 999px;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+.cat-badge.gh     { color:#2b56c9; background:#e4ecff; }
+.cat-badge.gen    { color:#0b7a4d; background:#e2f6ec; }
+.cat-badge.multi  { color:#7a3fc9; background:#f1e8ff; }
+.cat-badge.custom { color:#5a6a7a; background:#eceff3; }
+
+/* 与当前链接类型不匹配的通道：淡化 + 名称删除线 */
+.method-item.incompat { opacity: .52; filter: grayscale(.35); }
+.method-item.incompat .method-name { text-decoration: line-through; text-decoration-color: rgba(120,130,145,.65); }
+.method-item.compat:not(.active) { box-shadow: 4px 4px 10px #c5d0de, -4px -4px 10px #ffffff, inset 0 0 0 1px rgba(37,160,100,.28); }
+
+/* 颜色图例 */
+.channel-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px 12px;
+    margin-top: 9px;
+    padding: 0 3px;
+    font-size: 10px;
+    color: var(--ink-mid);
+}
+.channel-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.lg-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.lg-dot.gh { background:#2b56c9; }
+.lg-dot.gen { background:#0b7a4d; }
+.lg-dot.multi { background:#7a3fc9; }
+
 /* 速度徽章：沿用语义色，改成扁平胶囊 */
 .method-speed {
     margin-left: auto;
@@ -861,13 +907,41 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
     gap: 12px;
     flex-wrap: wrap;
 }
-#sourceNote {
-    font-size: 11.5px;
-    line-height: 1.5;
-    color: var(--ink-faint);
-    flex: 1 1 180px;
-    min-width: 0;
+/* ===== 链接类型识别 + 通道选择建议（显眼卡片） ===== */
+.link-hint {
+    margin-top: 15px;
+    border-radius: var(--r-md);
+    padding: 13px 15px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    border: 1.5px solid;
+    box-shadow: var(--sh-inset-sm);
 }
+.link-hint.hidden { display: none; }
+.link-hint.gh     { background:#eaf1ff; border-color:#a9c2f5; color:#1b3d86; }
+.link-hint.general{ background:#e7f7ee; border-color:#a4dcbc; color:#0c6541; }
+.link-hint.multi  { background:#f2eaff; border-color:#cfb4f2; color:#5f2fa0; }
+.link-hint .lh-title {
+    display: flex; align-items: center; gap: 7px;
+    font-weight: 800; font-size: 13.5px; margin-bottom: 6px;
+}
+.link-hint .lh-badge {
+    flex: none; font-size: 10px; font-weight: 800; letter-spacing: .04em;
+    padding: 2px 8px; border-radius: 999px; color: #fff;
+}
+.link-hint.gh     .lh-badge { background:#2b56c9; }
+.link-hint.general .lh-badge { background:#0b7a4d; }
+.link-hint.multi  .lh-badge { background:#7a3fc9; }
+.link-hint .lh-body b { font-weight: 800; }
+.link-hint .lh-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.link-hint .lh-chip {
+    font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+    background: rgba(255,255,255,.8); border: 1px solid rgba(0,0,0,.07);
+}
+.link-hint.gh     .lh-chip { color:#2b56c9; border-color:#c3d5ff; }
+.link-hint.general .lh-chip { color:#0b7a4d; border-color:#bfe6d1; }
+.link-hint.multi  .lh-chip { color:#7a3fc9; border-color:#dfc9ff; }
+.link-hint .lh-warn { margin-top: 8px; font-size: 11px; opacity: .9; }
 
 /* ============================================================
    悬停测速浮层：石墨质感，和启动键同语言
@@ -1252,7 +1326,6 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
     .icon-well { width: 52px; height: 52px; }
     .result-actions { gap: 10px; }
     .result-actions .lc { flex: 1 1 auto; }
-    #sourceNote { flex: 1 1 100%; }
     .snake-module img { max-width: 300px; width: 100%; }
     .modal { max-width: 100%; }
 }
@@ -1309,6 +1382,11 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
         </div>
         <div class="speed-summary" id="speedSummary">点击「测速」开始测速</div>
         <div class="method-list" id="methodList" role="radiogroup" aria-label="选择加速通道"></div>
+        <div class="channel-legend" aria-label="通道类型图例">
+            <span><i class="lg-dot gh"></i>蓝 · GitHub 专用</span>
+            <span><i class="lg-dot gen"></i>绿 · 通用直链</span>
+            <span><i class="lg-dot multi"></i>紫 · 多平台</span>
+        </div>
         <div class="custom-row hidden" id="customRow">
             <div class="custom-head">
                 <span class="custom-label">自定义前缀</span>
@@ -1337,6 +1415,7 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
                     <li>如果你有自己搭的或买的通路：选「<span class="hl">自定义前缀</span>」通道，在下方输入你的加速地址即可</li>
                     <li>Xget 通道对 <b>GitHub / GitLab / HuggingFace</b> 生效，其他站点会自动改用通用前缀通道</li>
                     <li><b>gh-proxy / ghproxy / GitHub 专用</b> 通道只代理 GitHub 域名：粘贴非 GitHub 直链（如官网 exe/zip）会自动改用通用通道，否则会打开通道官网网页而不是下载</li>
+                    <li>提取成功后，结果卡会显示<b>链接类型</b>并推荐可用通道；左侧通道按颜色区分：<b>蓝=GitHub 专用、绿=通用直链、紫=多平台</b>，不适用的通道会淡化并显示删除线</li>
                 </ul>
             </div>
         </div>
@@ -1418,6 +1497,9 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
                     <div class="result-url" id="iconUrl"></div>
                 </div>
             </div>
+            <!-- 链接类型识别 + 通道选择建议 -->
+            <div id="linkHint" class="link-hint hidden" aria-live="polite"></div>
+
             <div class="result-actions">
                 <a id="linkVisit" class="lc lc-md lc-download" href="#" target="_blank" rel="noopener">
                     <span class="lc-spot"></span>
@@ -1436,7 +1518,6 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
                         <span class="lc-label" id="btnCopyText">复制地址</span>
                     </span>
                 </button>
-                <span id="sourceNote"></span>
             </div>
         </div>
 
@@ -1511,6 +1592,15 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
             { type: 'prefix',   name: 'gh-proxy.at9.net',   value: 'https://gh-proxy.at9.net/', desc: 'https://gh-proxy.at9.net/', note: 'Release / Raw / 直链（部分链路待验证）' },
             { type: 'custom',   name: '自定义前缀',          value: '__custom__',               desc: '粘贴任意加速前缀',           note: '自己填加速站前缀，防单点失效' }
         ];
+
+        /* 通道类别标签（与下方主脚本的分类保持一致）：
+           gh=GitHub 专用（蓝） / gen=通用直链（绿） / multi=多平台（紫） / custom=自定义（灰） */
+        var CAT_LABEL = { gh: 'GitHub', gen: '通用', multi: '多平台', custom: '自定义' };
+        function channelCat(c) {
+            if (c.type === 'xget') return 'multi';
+            if (c.type === 'custom') return 'custom';
+            return c.ghOnly ? 'gh' : 'gen';
+        }
 
         /* ===== 测速 =====
            测试文件：git 仓库源码包（约 13MB，稳定），各前缀通道用同一文件测真实吞吐。
@@ -1705,21 +1795,26 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
                 }
                 var pct = (c.ok && maxK > 0 && c.kbps > 0) ? Math.max(4, Math.round(c.kbps / maxK * 100)) : 0;
                 var bar = (badge && c.ok && c.kbps > 0) ? '<span class="method-bar"><i class="' + barCls + '" style="width:' + pct + '%"></i></span>' : '';
+                var cat = channelCat(c);
                 var dataAttrs = ' data-name="' + c.name + '"'
+                        + ' data-cat="' + cat + '"'
                         + ' data-speed="' + (c.speedText || '') + '"'
                         + ' data-ttfb="' + (c.ttfb || 0) + '"'
                         + ' data-total="' + (c.total || 0) + '"'
                         + ' data-ms="' + (c.ms || 0) + '"'
                         + ' data-status="' + status + '"';
                 html += '<label class="method-item' + (isChecked ? ' active' : '') + '"' + dataAttrs + '>' +
-                        '<input type="radio" name="method" value="' + c.value + '" data-type="' + c.type + '"' + (c.ghOnly ? ' data-ghonly="1"' : '') + (isChecked ? ' checked' : '') + '>' +
+                        '<input type="radio" name="method" value="' + c.value + '" data-type="' + c.type + '" data-cat="' + cat + '"' + (c.ghOnly ? ' data-ghonly="1"' : '') + (isChecked ? ' checked' : '') + '>' +
                         '<span class="method-row"><span class="method-num">通路' + (j + 1) + '</span><span class="method-name">' + c.name + '</span>' +
+                        '<span class="cat-badge ' + cat + '">' + CAT_LABEL[cat] + '</span>' +
                         (badge ? '<span class="' + cls + '">' + badge + '</span>' : '') +
                         '</span>' +
                         bar +
                         '</label>';
             }
             list.innerHTML = html;
+            /* 通知主脚本重新给通道打"适用/不适用"标记（测速重渲染会清掉旧标记） */
+            document.dispatchEvent(new CustomEvent('channelsrebuilt'));
         }
 
         function selectMethod(value) {
@@ -1939,13 +2034,12 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
     var btnCopyText = document.getElementById('btnCopyText');
     var btnClear = document.getElementById('btnClear');
     var linkVisit = document.getElementById('linkVisit');
-    var sourceNote = document.getElementById('sourceNote');
+    var linkHint = document.getElementById('linkHint');
     var cleanedOnce = false;   // 本次是否发生过代理前缀清洗
     var cleanUrl = '';         // 清洗后的纯净原始链接
     var blobConverted = false; // 本次是否把 GitHub blob 网页地址转成了文件直链
     var gen = 0;               // 提取轮次：清空后作废仍在返回途中的请求结果
     var fallbackNote = '';     // 本次拼接发生的通道回退说明（如不支持该站点改用通用通道）
-    var lastResultNote = '';   // 最近一次结果卡的提示文案（复制/下载时用于追加回退提示）
 
     function showError(msg) {
         errorBox.textContent = msg;
@@ -1979,7 +2073,8 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
         errorBox.textContent = '';
         errorBox.classList.add('hidden');
         iconUrl.textContent = '';
-        sourceNote.textContent = '';
+        if (linkHint) { linkHint.className = 'link-hint hidden'; linkHint.innerHTML = ''; }
+        clearChannelCompat();
         iconPreview.removeAttribute('src');
         iconPreview.onerror = null;
         setLoading(false);
@@ -1997,14 +2092,85 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
         /* 结果框展示用于生成加速链接的源链接（latest 跳转链接已被替换为解析后的直链） */
         iconUrl.textContent = cleanUrl || data.url;
         linkVisit.href = data.preview;
-        var note = data.source ? '来源：' + data.source : '';
-        if (cleanedOnce) note = (note ? note + ' · ' : '') + '已自动清洗代理前缀';
-        if (blobConverted) note = (note ? note + ' · ' : '') + 'GitHub 网页地址已转为文件直链';
-        if (resolvedNote) note = (note ? note + ' · ' : '') + resolvedNote;
-        sourceNote.textContent = note;
-        lastResultNote = note;
+        renderLinkHint();
         resultCard.classList.remove('hidden');
         syncClearState();
+    }
+
+    /* ===== 链接类型识别 + 通道选择建议 =====
+       识别不出平台或普通直链 → general（绿）：GitHub 专用通道不可用
+       GitHub → gh（蓝）；GitLab / HuggingFace → multi（紫，仅 Xget 支持） */
+    function detectLinkType(url) {
+        var u;
+        try { u = new URL(url); } catch (e) { return { key: 'general', label: '普通直链', cls: 'general' }; }
+        var h = u.hostname.toLowerCase();
+        if (h === 'github.com' || /\.github\.com$/.test(h) ||
+            h === 'githubusercontent.com' || /\.githubusercontent\.com$/.test(h)) {
+            return { key: 'gh', label: 'GitHub 链接', cls: 'gh' };
+        }
+        if (h === 'gitlab.com' || /\.gitlab\.com$/.test(h)) {
+            return { key: 'multi', label: 'GitLab 链接', cls: 'multi' };
+        }
+        if (h === 'huggingface.co' || /\.huggingface\.co$/.test(h)) {
+            return { key: 'multi', label: 'HuggingFace 链接', cls: 'multi' };
+        }
+        return { key: 'general', label: '普通直链', cls: 'general' };
+    }
+
+    /* 左侧通道匹配标记：不适用通道淡化+删除线，适用通道描边高亮 */
+    function clearChannelCompat() {
+        var items = document.querySelectorAll('#methodList .method-item');
+        for (var i = 0; i < items.length; i++) {
+            items[i].classList.remove('incompat', 'compat');
+        }
+    }
+    /* 通道列表被测速重渲染后，重新按当前链接打标记 */
+    document.addEventListener('channelsrebuilt', function() {
+        if (cleanUrl && linkHint && !linkHint.classList.contains('hidden')) {
+            renderLinkHint();
+        }
+    });
+
+    function markChannelCompat(type) {
+        clearChannelCompat();
+        var items = document.querySelectorAll('#methodList .method-item');
+        for (var i = 0; i < items.length; i++) {
+            var cat = items[i].getAttribute('data-cat') || 'gen';
+            var ok = true;
+            if (cat === 'gh') ok = (type.key === 'gh');
+            else if (cat === 'multi') ok = (type.key === 'gh' || type.key === 'multi');
+            /* gen 通用直链、custom 自定义：任何平台都可用 */
+            items[i].classList.add(ok ? 'compat' : 'incompat');
+        }
+    }
+
+    function renderLinkHint() {
+        if (!linkHint) return;
+        if (!cleanUrl) { linkHint.className = 'link-hint hidden'; linkHint.innerHTML = ''; return; }
+        var t = detectLinkType(cleanUrl);
+        var host = '';
+        try { host = new URL(cleanUrl).hostname; } catch (e) {}
+        var title, body, chips;
+        if (t.key === 'gh') {
+            title = '已识别为 GitHub 链接';
+            body = '该链接来自 <b>' + host + '</b>。左侧蓝色标记的 <b>GitHub 专用通道</b>（gh-proxy / ghproxy / GitHub专用）可直接加速；绿色通用通道、紫色 Xget 也可用。';
+            chips = ['GitHub 专用', '通用直链', 'Xget 多平台'];
+        } else if (t.key === 'multi') {
+            title = '已识别为 ' + t.label;
+            body = '该链接来自 <b>' + host + '</b>。GitHub 专用通道不适用；请选左侧紫色标记的 <b>Xget 多平台通道</b>，或绿色通用通道。';
+            chips = ['Xget 多平台', '通用直链'];
+        } else {
+            title = '已识别为普通直链（非 GitHub）';
+            body = '该链接来自 <b>' + host + '</b>，不是 GitHub 域名。蓝色标记的 <b>GitHub 专用通道</b>无法加速（会打开通道官网网页而不是下载）；请选左侧绿色标记的 <b>通用直链通道</b>。';
+            chips = ['通用直链（小帅）', 'gh-proxy.at9.net', '自定义前缀'];
+        }
+        var html = '<div class="lh-title"><span class="lh-badge">' + t.label + '</span>' + title + '</div>' +
+                   '<div class="lh-body">' + body + '</div>' +
+                   '<div class="lh-chips">' + chips.map(function(c) { return '<span class="lh-chip">' + c + '</span>'; }).join('') + '</div>';
+        if (fallbackNote) html += '<div class="lh-warn">⚠ ' + fallbackNote + '</div>';
+        linkHint.className = 'link-hint ' + t.cls;
+        linkHint.innerHTML = html;
+        markChannelCompat(t);
     }
 
     function copyText(text) {
@@ -2236,10 +2402,9 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
         return ch.value + cleanUrl;
     }
 
-    /* 复制 / 下载后刷新提示：若发生通道自动回退则告知用户实际使用的通道 */
+    /* 复制 / 下载后刷新提示：若发生通道自动回退则在显眼提示卡中追加说明 */
     function syncFallbackNote() {
-        if (!fallbackNote) return;
-        sourceNote.textContent = lastResultNote ? (lastResultNote + ' · ' + fallbackNote) : fallbackNote;
+        if (fallbackNote && linkHint) renderLinkHint();
     }
 
     /* 校验当前通道是否支持该链接，返回 '' 表示支持，否则返回错误提示 */
@@ -2348,6 +2513,7 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
         cleanedOnce = false;
         resolvedNote = '';
         blobConverted = false;
+        fallbackNote = '';
         var target;
         try {
             cleanUrl = normalizeUrl(cleanProxyUrl(raw));
