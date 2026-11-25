@@ -1314,6 +1314,13 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
     .help-btn { margin-top: 6px; }
     /* 手机端：感谢按钮移除（屏幕太小，不再展示） */
     .thanks-fab { display: none; }
+    /* 手机/窄屏：移除悬停测速黑色浮层，避免选通道时遮挡（桌面端不受影响） */
+    .speed-tip { display: none !important; }
+}
+
+/* 触屏设备（无鼠标悬停）：同样不显示该浮层 */
+@media (hover: none) {
+    .speed-tip { display: none !important; }
 }
 
 @media (max-width: 560px) {
