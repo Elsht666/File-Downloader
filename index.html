@@ -1086,7 +1086,8 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
     line-height: 1; vertical-align: middle;
 }
 .modal-body .lc-up .lc-core { border-radius: 5px; padding: 0; font-size: 11px; letter-spacing: 0; }
-.modal-body .up-name { color: var(--accent-deep); font-weight: 700; white-space: nowrap; }
+.modal-body .up-name { color: var(--accent-deep); font-weight: 700; white-space: nowrap; text-decoration: none; cursor: pointer; }
+.modal-body .up-name:hover { text-decoration: underline; }
 .modal-body .hl {
     background: rgba(63, 106, 216, .12);
     color: var(--accent-deep);
@@ -1436,7 +1437,7 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
             <div class="modal-body">
                 <ul class="help-list">
                     <li><span class="num">1.</span> 只差一点就下完却失败、或始终下不了：多为浏览器拦截，换 <b>Chrome / Edge / Firefox</b> 重试即可</li>
-                    <li><span class="num">2.</span> 免费通道可能失效或跑路：本站提供多家通路，换一条即可；仍不行,欢迎大家反馈,请点击 -> <a class="lc lc-up" id="upContact" href="https://message.bilibili.com/#/whisper/mid1476255996" target="_blank" rel="noopener" title="点击私信 UP"><span class="lc-core"><span class="lc-label">UP</span></span></a> <span class="up-name">Elsht丨爱走弯路</span></li>
+                    <li><span class="num">2.</span> 免费通道可能失效或跑路：本站提供多家通路，换一条即可；仍不行,欢迎大家反馈,请点击 -> <a class="lc lc-up" id="upContact" href="https://message.bilibili.com/#/whisper/mid1476255996" target="_blank" rel="noopener" title="点击私信 UP"><span class="lc-core"><span class="lc-label">UP</span></span></a> <a class="up-name" href="https://message.bilibili.com/#/whisper/mid1476255996" target="_blank" rel="noopener" title="点击私信 UP">Elsht丨爱走弯路</a></li>
                     <li><span class="num">3.</span> 有自己的加速地址可选「<span class="hl">自定义前缀</span>」，输入格式如：<b>https://你的加速前缀/</b></li>
                     <li class="note">本站为非盈利站，只为方便你我这样的普通用户</li>
                 </ul>
@@ -2811,10 +2812,11 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
        手机端 → 优先唤起 B 站 App 直达 UP 主页，失败则回退网页私信；
        桌面端 → scheme 唤起客户端不稳定，直接用原本的网页私信链接（新标签页）。
        注意：私信无论网页还是客户端都必须登录本人 B 站账号。 */
-    var upBtn = document.getElementById('upContact');
-    if (upBtn) {
+    var upBtns = document.querySelectorAll('#upContact, .up-name');
+    if (upBtns.length) {
         var WEB_URL = 'https://message.bilibili.com/#/whisper/mid1476255996';
         var APP_URL = 'bilibili://space/1476255996';
+        Array.prototype.forEach.call(upBtns, function(upBtn) {
         upBtn.addEventListener('click', function(e) {
             var ua = navigator.userAgent || '';
             var isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
@@ -2842,6 +2844,7 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
                     window.open(WEB_URL, '_blank', 'noopener');
                 }
             }, 1500);
+        });
         });
     }
 })();
