@@ -1602,6 +1602,8 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
             { type: 'prefix',   name: 'gh-proxy.at9.net',   value: 'https://gh-proxy.at9.net/', desc: 'https://gh-proxy.at9.net/', note: 'Release / Raw / 直链（部分链路待验证）' },
             { type: 'custom',   name: '自定义前缀',          value: '__custom__',               desc: '粘贴任意加速前缀',           note: '自己填加速站前缀，防单点失效' }
         ];
+        /* 记录原始次序：非推荐通道不参与速度排序，按此次序保持原有位置 */
+        for (var _ci = 0; _ci < PROXY_CHANNELS.length; _ci++) PROXY_CHANNELS[_ci]._order = _ci;
 
         /* 通道类别标签（与下方主脚本的分类保持一致）：
            gh=GitHub 专用（蓝） / gen=通用直链（绿） / multi=多平台（紫） / custom=自定义（灰） */
@@ -1856,6 +1858,27 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
         }
         window.__dlChannelApplicable = channelApplicable;
 
+        /* ===== 推荐通道：以结果卡"可选择以下通道"里列出的通道为准 =====
+           推荐集由主脚本的 HINT_RECOMMEND 提供（window.__dlRecommendValues）。
+           自定义前缀不参与推荐判断（单独置底、不暗淡）。 */
+        function isRecommended(c, typeKey) {
+            if (!typeKey || !window.__dlRecommendValues) return true;  // 未提取：全部按正常速度排序
+            if (channelCat(c) === 'custom') return true;               // 自定义始终置底，不暗淡
+            var vals = window.__dlRecommendValues(typeKey) || [];
+            return vals.indexOf(c.value) >= 0;
+        }
+
+        /* 供主脚本给推荐标签按速度排序（速度与排序脚本共用同一份数据） */
+        window.__dlSpeedOf = function(value) {
+            for (var i = 0; i < PROXY_CHANNELS.length; i++) {
+                var c = PROXY_CHANNELS[i];
+                if (c.value === value) {
+                    return { group: speedGroup(c), kbps: c.kbps || 0, ttfb: c.ttfb || 0 };
+                }
+            }
+            return { group: 0, kbps: 0, ttfb: 0 };
+        };
+
         function applyOrderAndSelect(opts) {
             opts = opts || {};
             var typeKey = window.__dlLinkType;
@@ -1863,11 +1886,14 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
                 /* 0) 自定义前缀不参与排序，永远置底 */
                 var ca = channelCat(a) === 'custom', cb = channelCat(b) === 'custom';
                 if (ca !== cb) return ca ? 1 : -1;
-                /* 1) 适用当前链接的排前面，无关通路下排 */
-                var aa = channelApplicable(channelCat(a), typeKey) ? 1 : 0;
-                var bb = channelApplicable(channelCat(b), typeKey) ? 1 : 0;
-                if (aa !== bb) return bb - aa;
-                /* 2) 组内再按速度：有吞吐 → 仅连接/CORS可下载 → 不可用 */
+                if (ca && cb) return 0;  // 自定义之间保持原顺序
+                /* 1) 推荐通道排上方，非推荐（将暗淡）下移 */
+                var ra = isRecommended(a, typeKey) ? 1 : 0;
+                var rb = isRecommended(b, typeKey) ? 1 : 0;
+                if (ra !== rb) return rb - ra;
+                /* 2) 非推荐之间不参与排序，保持原始次序 */
+                if (!ra) return (a._order || 0) - (b._order || 0);
+                /* 3) 推荐组内按速度：有吞吐 → 仅连接/CORS可下载 → 不可用 */
                 var ga = speedGroup(a), gb = speedGroup(b);
                 if (ga !== gb) return gb - ga;
                 if (ga === 3) {
@@ -1875,18 +1901,18 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
                     return (a.ttfb || 0) - (b.ttfb || 0);
                 }
                 if (ga === 2) return (a.ttfb || 0) - (b.ttfb || 0);
-                return 0;
+                return (a._order || 0) - (b._order || 0);
             });
-            renderMethods();   // 内部派发 channelsrebuilt → 主脚本重打适用/不适用标记
+            renderMethods();   // 内部派发 channelsrebuilt → 主脚本重打 推荐/非推荐 标记
 
             /* 是否可下载：ok=连上；corsOnly=CORS 仅拦 JS 测速、链接照常可下载；自定义未填前缀不算 */
             function usable(c) { return (c.ok || c.corsOnly) && channelCat(c) !== 'custom'; }
 
-            /* 自动选中"适用且最快可下载"的通道（自定义前缀置底且不自动选中） */
+            /* 自动选中"推荐且最快可下载"的通道（自定义前缀置底且不自动选中） */
             if (opts.select !== false) {
                 for (var i = 0; i < PROXY_CHANNELS.length; i++) {
                     var c = PROXY_CHANNELS[i];
-                    if (usable(c) && channelApplicable(channelCat(c), typeKey)) { selectMethod(c.value); break; }
+                    if (usable(c) && isRecommended(c, typeKey)) { selectMethod(c.value); break; }
                 }
             }
 
@@ -1898,13 +1924,13 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
                     var fastest = null;
                     for (var j = 0; j < PROXY_CHANNELS.length; j++) {
                         var f = PROXY_CHANNELS[j];
-                        if (usable(f) && f.kbps > 0 && channelApplicable(channelCat(f), typeKey)) { fastest = f; break; }
+                        if (usable(f) && f.kbps > 0 && isRecommended(f, typeKey)) { fastest = f; break; }
                     }
                     if (fastest) {
                         var now = new Date();
                         var hh = ('0' + now.getHours()).slice(-2);
                         var mm = ('0' + now.getMinutes()).slice(-2);
-                        sum.innerHTML = '上次测速 ' + hh + ':' + mm + ' · 最快适用 <b>' + fastest.name + ' ' + fastest.speedText + '</b>';
+                        sum.innerHTML = '上次测速 ' + hh + ':' + mm + ' · 最快推荐 <b>' + fastest.name + ' ' + fastest.speedText + '</b>';
                     } else {
                         sum.innerHTML = '测速完成 · 暂无可用通道';
                     }
@@ -2196,7 +2222,8 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
         return { key: 'general', label: '普通直链', cls: 'general' };
     }
 
-    /* 左侧通道匹配标记：不适用通道淡化+删除线，适用通道描边高亮 */
+    /* 左侧通道标记：推荐通道描边高亮，非推荐通道淡化+删除线并沉到下方
+       （自定义前缀不淡化、始终置底，由排序脚本保证位置） */
     function clearChannelCompat() {
         var items = document.querySelectorAll('#methodList .method-item');
         for (var i = 0; i < items.length; i++) {
@@ -2212,14 +2239,16 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
 
     function markChannelCompat(type) {
         clearChannelCompat();
+        var recVals = window.__dlRecommendValues ? window.__dlRecommendValues(type.key) : [];
         var items = document.querySelectorAll('#methodList .method-item');
         for (var i = 0; i < items.length; i++) {
-            var cat = items[i].getAttribute('data-cat') || 'gen';
-            var ok = true;
-            if (cat === 'gh') ok = (type.key === 'gh');
-            /* multi=Xget：不支持的站点会自动回退通用通道，任何链接都能下载 → 恒适用，不淡化
-               gen 通用直链、custom 自定义：任何平台都可用 */
-            items[i].classList.add(ok ? 'compat' : 'incompat');
+            var item = items[i];
+            var input = item.querySelector('input');
+            var cat = item.getAttribute('data-cat') || 'gen';
+            var value = input ? input.value : '';
+            /* 自定义前缀不淡化；其余仅"推荐列表内"的通道保持正常 */
+            var ok = (cat === 'custom') || recVals.indexOf(value) >= 0;
+            item.classList.add(ok ? 'compat' : 'incompat');
         }
     }
 
@@ -2242,6 +2271,12 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
         ]
     };
 
+    /* 供左侧排序脚本取用：某链接类型下的推荐通道 value 列表 */
+    window.__dlRecommendValues = function(key) {
+        var rec = HINT_RECOMMEND[key] || HINT_RECOMMEND.general;
+        return rec.map(function(c) { return c.value; });
+    };
+
     /* 点击标签：选中左侧对应通道并触发 change（联动高亮 / 自定义输入行 / 链接刷新） */
     function selectChannelByValue(value) {
         var inputs = document.querySelectorAll('#methodList input[name="method"]');
@@ -2262,7 +2297,19 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
         var t = detectLinkType(cleanUrl);
         var host = cleanUrl;
         try { host = new URL(cleanUrl).hostname; } catch (e) {}
-        var rec = HINT_RECOMMEND[t.key] || HINT_RECOMMEND.general;
+        var rec = (HINT_RECOMMEND[t.key] || HINT_RECOMMEND.general).slice();
+        /* 推荐标签按先前测速结果由快到慢重排；未测速/同组时保持原有次序 */
+        rec.sort(function(a, b) {
+            if (!window.__dlSpeedOf) return 0;
+            var sa = window.__dlSpeedOf(a.value), sb = window.__dlSpeedOf(b.value);
+            if (sa.group !== sb.group) return sb.group - sa.group;
+            if (sa.group === 3) {
+                if (sa.kbps !== sb.kbps) return sb.kbps - sa.kbps;
+                return sa.ttfb - sb.ttfb;
+            }
+            if (sa.group === 2) return sa.ttfb - sb.ttfb;
+            return 0;
+        });
         var html = '<div class="lh-line"><span class="lh-badge">' + t.label +
                    '</span>来自 <span class="host">' + host + '</span>，可选择以下通道：</div>' +
                    '<div class="lh-chips">' + rec.map(function(c) {
