@@ -1075,7 +1075,10 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
 .modal-body li { margin-top: 9px; }
 .modal-body li:first-child { margin-top: 0; }
 .modal-body li::marker { color: var(--accent); }
+.modal-body ul.help-list { list-style: none; padding-left: 16px; }
 .modal-body b { color: var(--ink); font-weight: 800; }
+.modal-body .help-list .num { color: #22e06a; font-weight: 800; text-shadow: 0 0 7px rgba(34,224,106,.55); }
+.modal-body .help-list li.note { text-align: center; color: #b45cff; font-weight: 700; margin-top: 14px; text-shadow: 0 0 8px rgba(180,92,255,.45); }
 .modal-body .hl {
     background: rgba(63, 106, 216, .12);
     color: var(--accent-deep);
@@ -1416,16 +1419,11 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
                 <button class="modal-close" id="helpClose" type="button" aria-label="关闭">✕</button>
             </div>
             <div class="modal-body">
-                <ul>
-                    <li>官网「latest」跳转链接（如 <b>central.github.com/.../latest/win32</b>）不是直链：粘贴后点「提取」会自动解析成最新版本直链，再复制加速链接即可</li>
-                    <li>卡在最后一点一直没完成：多半是连接被掐断，换 <b>Chrome / Edge / Firefox</b> 等浏览器重试</li>
-                    <li>也可以点「测速」，把通道切到更快的可用通路再试</li>
-                    <li>想要更高速率：多数加速站的高速节点需注册并购买 <b>VIP / 会员</b>，免费公益通道通常限速、不稳定</li>
-                    <li>如果你有自己搭的或买的通路：选「<span class="hl">自定义前缀</span>」通道，在下方输入你的加速地址即可</li>
-                    <li>Xget 通道对 <b>GitHub / GitLab / HuggingFace</b> 生效，其他站点会自动改用通用前缀通道</li>
-                    <li><b>gh-proxy / ghproxy / GitHub 专用</b> 通道只代理 GitHub 域名：粘贴非 GitHub 直链（如官网 exe/zip）会自动改用通用通道，否则会打开通道官网网页而不是下载</li>
-                    <li>提取成功后，结果卡会简短显示链接来源并列出<b>可选通道标签</b>，点一下标签即可选中左侧对应通道；左侧通道按颜色区分：<b>蓝=GitHub 专用、绿=通用直链、紫=多平台</b>，不适用的通道会淡化并显示删除线</li>
-                    <li>每次<b>提取或测速后</b>会自动把"适用于当前链接"的通道排到上方，并自动选中其中速度最快的一个；无关通道沉到下方</li>
+                <ul class="help-list">
+                    <li><span class="num">1.</span> 只差一点就下完却失败、或始终下不了：多为浏览器拦截，换 <b>Chrome / Edge / Firefox</b> 重试即可</li>
+                    <li><span class="num">2.</span> 免费通道可能失效或跑路：本站提供多家通路，换一条即可；仍不行也欢迎反馈给我</li>
+                    <li><span class="num">3.</span> 有自己的加速地址可选「<span class="hl">自定义前缀</span>」，输入格式如：<b>https://你的加速前缀/</b></li>
+                    <li class="note">本站为非盈利站，只为方便你我这样的普通用户</li>
                 </ul>
             </div>
         </div>
