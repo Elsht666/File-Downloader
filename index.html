@@ -6,6 +6,177 @@
 <meta name="description" content="粘贴 GitHub / 任意下载链接，一键生成多通道加速下载地址（自建 + gh-proxy 系列 + Xget + 镜像站 + 自定义前缀），复制即用">
 <link rel="icon" href="static/icon/favicon.ico" type="image/x-icon">
 <title>多通道下载站</title>
+<script>
+/* ============================================================
+   多语言模块（i18n）：默认按浏览器系统语言自动选择（zh* → 中文，其余 → 英文），
+   用户手动切换后写入 localStorage 记住选择。功能逻辑不受影响。
+   ============================================================ */
+window.I18N = (function() {
+    'use strict';
+    var DICT = {
+        zh: {
+            title: '多通道下载站',
+            metaDesc: '粘贴 GitHub / 任意下载链接，一键生成多通道加速下载地址（自建 + gh-proxy 系列 + Xget + 镜像站 + 自定义前缀），复制即用',
+            loading: '多通道下载站 · 加载中',
+            sidebarTitle: '加速通道', langShort: 'EN', langBtnTitle: '切换到英文', langToggleAria: '切换中英文',
+            speedBtn: '测速', speedHint: '点击「测速」开始测速',
+            legendGh: '蓝 · GitHub 专用', legendGen: '绿 · 通用直链', legendMulti: '紫 · 多平台', legendAria: '通道类型图例',
+            customLabel: '自定义前缀', customTag: '备用通道', customPlaceholder: 'https://你的加速前缀/',
+            helpBtn: '无法下载？', helpTitle: '无法下载？', close: '关闭', methodListAria: '选择加速通道',
+            help1: '<span class="num">1.</span> 只差一点就下完却失败、或始终下不了：多为浏览器拦截，换 <b>Chrome / Edge / Firefox</b> 重试即可',
+            help2: '免费通道可能失效或跑路：本站提供多家通路，换一条即可；仍不行,欢迎大家反馈,请点击 ->',
+            help3: '<span class="num">3.</span> 有自己的加速地址可选「<span class="hl">自定义前缀</span>」，输入格式如：<b>https://你的加速前缀/</b>',
+            help4: '本站为非盈利站，只为方便你我这样的普通用户', upTitle: '点击私信 UP',
+            thanks: '感谢', thanksTitle: '感谢通路提供者', thanksHead: '感谢这些通路',
+            thanksLead: '本站只是把地址拼好，真正的下载速度来自下面这些公益通路与开源项目。免费节点往往自己贴钱维护，向维护者致谢。',
+            thanksSelf: '自建', thanksFoot: '通路可能随时调整或停服，若维护者希望改名 / 补充链接 / 移除条目。',
+            snakeAlt: '动态贪吃蛇', iconAlt: '图标预览',
+            urlPlaceholder: '粘贴下载直链 / 官网 latest 跳转链接均可',
+            btnClearTitle: '清空输入并回到初始状态', btnClearAria: '清空', btnClear: '清空',
+            btnExtract: '提取', extracting: '提取中…', resultKicker: '解析结果',
+            download: '下载', copy: '复制地址', copied: '已复制 ✓',
+            errNoUrl: '请输入网址', errBadUrl: '网址格式不正确，请检查后重试',
+            errNoIcon: '未找到图标，请检查网址是否正确', errRequest: '请求失败，请检查网络后重试',
+            errInvalidDownload: '请输入有效的下载链接',
+            errResolveFail: '该链接未能解析出可下载直链，请直接粘贴 release 资产地址',
+            errCustomPrefix: '请先填写有效的自定义前缀', errCopyFail: '复制失败，请手动选中文本复制',
+            errLinkFormat: '链接格式不正确', errKkgithub: 'kkgithub 镜像仅支持 github.com / raw.githubusercontent.com 链接',
+            resolveBuiltin: '内置规则映射', resolveServer: '服务端重定向解析',
+            resolveFail: '解析失败', resolveUnavailable: '解析服务不可用',
+            resolvedNote: '已解析为最新版本直链', localProbe: '本地探测',
+            fallbackXget: 'Xget 不支持该站点，已自动改用通用通道',
+            fallbackGh: '{host} 仅支持 GitHub 链接，已自动改用通用通道',
+            ltGeneral: '普通直链', ltGh: 'GitHub 链接', ltGitlab: 'GitLab 链接', ltHf: 'HuggingFace 链接',
+            lhFrom: '来自', lhChoose: '，可选择以下通道：', lhChipTitle: '点击选中左侧通道',
+            chGen: '通用（小帅）', chGh: 'GitHub 专用（小帅）', chXget: 'Xget 加速',
+            chGhcom: 'gh-proxy.com', chGhnet: 'ghproxy.net', chAt9: 'gh-proxy.at9.net', chCustom: '自定义前缀',
+            catGh: 'GitHub', catGen: '通用', catMulti: '多平台', catCustom: '自定义',
+            methodNum: '通路 {n}',
+            speedTesting: '测速中…', tipNone: '未测速', tipHint: '点击「⇅ 测速排序」开始测速',
+            tipTtfb: '首包 TTFB', tipBytes: '读取数据', tipElapsed: '测试耗时', tipStatus: '状态：',
+            stOk: '通道可用', stSlow: '速度较慢', stCors: 'CORS 受限 · 可直接下载',
+            stBad: '通道不可用', stUnknown: '未知', stNone: '尚未测速',
+            speedConnect: '连接 {ms}ms', speedUnknown: '未知', speedNoPrefix: '未填前缀', speedCors: '可下载·CORS',
+            sumStart: '点击「测速」开始测速',
+            sumLast: '上次测速 {time} · 最快推荐 <b>{name} {speed}</b>',
+            sumDone: '测速完成 · 暂无可用通道',
+            motto1: 'GitHub Release · 直链通吃', motto2: 'latest 跳转链接 · 自动解析',
+            motto3: '多通道测速 · 智能排序', motto4: '自定义前缀 · 防单点失效'
+        },
+        en: {
+            title: 'Multi-Channel Download',
+            metaDesc: 'Paste a GitHub or any direct download link to generate multi-channel accelerated download URLs (self-hosted + gh-proxy + Xget + mirrors + custom prefix). Copy and go.',
+            loading: 'Multi-Channel Download · Loading',
+            sidebarTitle: 'Channels', langShort: '中', langBtnTitle: 'Switch to Chinese', langToggleAria: 'Switch language',
+            speedBtn: 'Speed test', speedHint: 'Click "Speed test" to start',
+            legendGh: 'Blue · GitHub only', legendGen: 'Green · General link', legendMulti: 'Purple · Multi-platform', legendAria: 'Channel type legend',
+            customLabel: 'Custom prefix', customTag: 'Backup', customPlaceholder: 'https://your-prefix/',
+            helpBtn: "Can't download?", helpTitle: "Can't download?", close: 'Close', methodListAria: 'Select acceleration channel',
+            help1: '<span class="num">1.</span> Download fails at the last moment or never starts: usually browser blocking. Try <b>Chrome / Edge / Firefox</b>',
+            help2: 'Free channels may go down or disappear: we provide multiple routes, just switch to another one. Still stuck? Feedback is welcome, click ->',
+            help3: '<span class="num">3.</span> Have your own accelerator? Select "<span class="hl">Custom prefix</span>" and enter it like: <b>https://your-prefix/</b>',
+            help4: 'This is a non-profit site, made to help everyday users like you and me.', upTitle: 'Message the UP on Bilibili',
+            thanks: 'Thanks', thanksTitle: 'Channel providers', thanksHead: 'Thanks to these channels',
+            thanksLead: 'This site only assembles URLs. The real download speed comes from the public channels and open-source projects below. Free nodes are often self-funded — thanks to their maintainers.',
+            thanksSelf: 'Self-hosted', thanksFoot: 'Channels may change or shut down at any time. Maintainers may request a rename / link update / removal.',
+            snakeAlt: 'Animated snake', iconAlt: 'Icon preview',
+            urlPlaceholder: 'Paste a direct link or an official "latest" redirect URL',
+            btnClearTitle: 'Clear input and reset', btnClearAria: 'Clear', btnClear: 'Clear',
+            btnExtract: 'Extract', extracting: 'Extracting…', resultKicker: 'Result',
+            download: 'Download', copy: 'Copy URL', copied: 'Copied ✓',
+            errNoUrl: 'Please enter a URL', errBadUrl: 'Invalid URL, please check and retry',
+            errNoIcon: 'No icon found, please check the URL', errRequest: 'Request failed, please check your network',
+            errInvalidDownload: 'Please enter a valid download link',
+            errResolveFail: 'Could not resolve a direct download link. Please paste the release asset URL directly.',
+            errCustomPrefix: 'Please enter a valid custom prefix', errCopyFail: 'Copy failed, please select and copy manually',
+            errLinkFormat: 'Invalid link format', errKkgithub: 'The kkgithub mirror only supports github.com / raw.githubusercontent.com links',
+            resolveBuiltin: 'Built-in rule mapping', resolveServer: 'Server-side redirect resolution',
+            resolveFail: 'Resolution failed', resolveUnavailable: 'Resolution service unavailable',
+            resolvedNote: 'Resolved to the latest version direct link', localProbe: 'Local probe',
+            fallbackXget: "Xget doesn't support this site, switched to the general channel",
+            fallbackGh: '{host} only supports GitHub links, switched to the general channel',
+            ltGeneral: 'Direct link', ltGh: 'GitHub link', ltGitlab: 'GitLab link', ltHf: 'HuggingFace link',
+            lhFrom: 'from', lhChoose: ', available channels:', lhChipTitle: 'Click to select this channel on the left',
+            chGen: 'General (Xiaoshuai)', chGh: 'GitHub only (Xiaoshuai)', chXget: 'Xget',
+            chGhcom: 'gh-proxy.com', chGhnet: 'ghproxy.net', chAt9: 'gh-proxy.at9.net', chCustom: 'Custom prefix',
+            catGh: 'GitHub', catGen: 'General', catMulti: 'Multi', catCustom: 'Custom',
+            methodNum: 'Channel {n}',
+            speedTesting: 'Testing…', tipNone: 'Not tested', tipHint: 'Click "⇅ Speed test" to start',
+            tipTtfb: 'First byte TTFB', tipBytes: 'Data read', tipElapsed: 'Test duration', tipStatus: 'Status:',
+            stOk: 'Channel available', stSlow: 'Slow', stCors: 'CORS limited · download works',
+            stBad: 'Channel unavailable', stUnknown: 'Unknown', stNone: 'Not tested yet',
+            speedConnect: 'Connected {ms}ms', speedUnknown: 'Unknown', speedNoPrefix: 'No prefix set', speedCors: 'Downloadable·CORS',
+            sumStart: 'Click "Speed test" to start',
+            sumLast: 'Last tested {time} · fastest recommended <b>{name} {speed}</b>',
+            sumDone: 'Test complete · no available channels',
+            motto1: 'GitHub Release · all direct links', motto2: '"latest" redirects · auto-resolved',
+            motto3: 'Multi-channel speed test · smart sorting', motto4: 'Custom prefix · avoid single point of failure'
+        }
+    };
+    var KEY = 'dlaccel_lang';
+    function detect() {
+        var saved = null;
+        try { saved = localStorage.getItem(KEY); } catch (e) {}
+        if (saved === 'zh' || saved === 'en') return saved;
+        var nav = (navigator.language || navigator.userLanguage || '').toLowerCase();
+        return nav.indexOf('zh') === 0 ? 'zh' : 'en';
+    }
+    var lang = detect();
+    function t(key) {
+        var d = DICT[lang] || DICT.zh;
+        if (key in d) return d[key];
+        return (key in DICT.zh) ? DICT.zh[key] : key;
+    }
+    function tf(key, vars) {
+        var s = t(key);
+        for (var k in vars) { s = s.split('{' + k + '}').join(vars[k]); }
+        return s;
+    }
+    function setAttr(sel, attr, key) {
+        var els = document.querySelectorAll(sel);
+        for (var i = 0; i < els.length; i++) els[i].setAttribute(attr, t(els[i].getAttribute(key)));
+    }
+    function applyStatic() {
+        var els = document.querySelectorAll('[data-i18n]');
+        for (var i = 0; i < els.length; i++) els[i].textContent = t(els[i].getAttribute('data-i18n'));
+        els = document.querySelectorAll('[data-i18n-html]');
+        for (i = 0; i < els.length; i++) els[i].innerHTML = t(els[i].getAttribute('data-i18n-html'));
+        setAttr('[data-i18n-ph]', 'placeholder', 'data-i18n-ph');
+        setAttr('[data-i18n-title]', 'title', 'data-i18n-title');
+        setAttr('[data-i18n-aria]', 'aria-label', 'data-i18n-aria');
+        setAttr('[data-i18n-alt]', 'alt', 'data-i18n-alt');
+        document.title = t('title');
+        var meta = document.querySelector('meta[name="description"]');
+        if (meta) meta.setAttribute('content', t('metaDesc'));
+        document.documentElement.lang = (lang === 'zh' ? 'zh-CN' : 'en');
+        var lb = document.getElementById('langBtnLabel');
+        if (lb) lb.textContent = t('langShort');
+        var lbt = document.getElementById('langToggle');
+        if (lbt) lbt.setAttribute('title', t('langBtnTitle'));
+    }
+    function setLang(l) {
+        if (l !== 'zh' && l !== 'en') return;
+        lang = l;
+        try { localStorage.setItem(KEY, l); } catch (e) {}
+        applyStatic();
+        document.dispatchEvent(new CustomEvent('languagechange', { detail: { lang: l } }));
+    }
+    function toggle() { setLang(lang === 'zh' ? 'en' : 'zh'); }
+    function bind() {
+        var b = document.getElementById('langToggle');
+        if (b) b.addEventListener('click', toggle);
+        applyStatic();
+    }
+    /* head 阶段即可确定标题与描述，避免英文用户看到中文标题 */
+    document.title = t('title');
+    document.documentElement.lang = (lang === 'zh' ? 'zh-CN' : 'en');
+    var _meta = document.querySelector('meta[name="description"]');
+    if (_meta) _meta.setAttribute('content', t('metaDesc'));
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind);
+    else bind();
+    return { t: t, tf: tf, setLang: setLang, toggle: toggle, get lang() { return lang; } };
+})();
+</script>
 <style>
 /* ============================================================
    多通道下载站 · 软拟态（Soft-UI / Clay）主题
@@ -529,6 +700,21 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
     color: var(--ink);
 }
 .sidebar-head small { font-size: 10.5px; color: var(--ink-faint); font-weight: 600; }
+.sidebar-head-left { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.sidebar-head-left .head-dot { margin-right: 0; }
+/* 语言切换按钮：与标题同处左侧，紧贴「加速通道」文字右侧 */
+.lang-toggle {
+    flex: none; width: 30px; height: 24px; padding: 0;
+    border: 1px solid var(--rim-dark);
+    border-radius: 7px;
+    background: linear-gradient(145deg, var(--panel), var(--panel-deep));
+    box-shadow: 2px 2px 5px rgba(146,168,193,.55), -2px -2px 5px var(--rim-light);
+    color: var(--accent-deep); font-size: 11px; font-weight: 800; letter-spacing: 0;
+    cursor: pointer; line-height: 1;
+    transition: box-shadow .16s ease, transform .16s ease;
+}
+.lang-toggle:hover { color: var(--accent); }
+.lang-toggle:active { transform: translateY(1px); box-shadow: inset 2px 2px 4px rgba(146,168,193,.6), inset -2px -2px 4px var(--rim-light); }
 .sidebar-head .head-dot {
     width: 7px; height: 7px;
     border-radius: 50%;
@@ -1370,7 +1556,7 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
         <div class="dots"></div>
         <div class="core"></div>
     </div>
-    <span class="loading-text">多通道下载站 · 加载中</span>
+    <span class="loading-text" data-i18n="loading">多通道下载站 · 加载中</span>
 </div>
 <script>
 (function() {
@@ -1399,47 +1585,47 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
     <aside class="sidebar">
         <div class="sidebar-well">
         <div class="sidebar-head">
-            <span><i class="head-dot"></i>加速通道</span>
+            <span class="sidebar-head-left"><i class="head-dot"></i><span data-i18n="sidebarTitle">加速通道</span><button id="langToggle" class="lang-toggle" type="button" data-i18n-title="langBtnTitle" data-i18n-aria="langToggleAria" title="切换到英文" aria-label="切换中英文"><span id="langBtnLabel">EN</span></button></span>
             <button id="btnSpeed" class="lc lc-sm" type="button">
                 <span class="lc-spot"></span>
                 <span class="lc-core">
                     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16Zm0 2.5a1 1 0 0 0-1 1V12l3.6 2.1a1 1 0 0 0 1-1.73L13 10.7V7.5a1 1 0 0 0-1-1Z"/></svg>
-                    <span class="lc-label">测速</span>
+                    <span class="lc-label" data-i18n="speedBtn">测速</span>
                 </span>
             </button>
         </div>
-        <div class="speed-summary" id="speedSummary">点击「测速」开始测速</div>
-        <div class="method-list" id="methodList" role="radiogroup" aria-label="选择加速通道"></div>
-        <div class="channel-legend" aria-label="通道类型图例">
-            <span><i class="lg-dot gh"></i>蓝 · GitHub 专用</span>
-            <span><i class="lg-dot gen"></i>绿 · 通用直链</span>
-            <span><i class="lg-dot multi"></i>紫 · 多平台</span>
+        <div class="speed-summary" id="speedSummary" data-i18n="speedHint">点击「测速」开始测速</div>
+        <div class="method-list" id="methodList" role="radiogroup" data-i18n-aria="methodListAria" aria-label="选择加速通道"></div>
+        <div class="channel-legend" data-i18n-aria="legendAria" aria-label="通道类型图例">
+            <span><i class="lg-dot gh"></i><span data-i18n="legendGh">蓝 · GitHub 专用</span></span>
+            <span><i class="lg-dot gen"></i><span data-i18n="legendGen">绿 · 通用直链</span></span>
+            <span><i class="lg-dot multi"></i><span data-i18n="legendMulti">紫 · 多平台</span></span>
         </div>
         <div class="custom-row hidden" id="customRow">
             <div class="custom-head">
-                <span class="custom-label">自定义前缀</span>
-                <span class="custom-tag">备用通道</span>
+                <span class="custom-label" data-i18n="customLabel">自定义前缀</span>
+                <span class="custom-tag" data-i18n="customTag">备用通道</span>
             </div>
             <input id="customPrefix" type="text" spellcheck="false" autocomplete="off"
-                   placeholder="https://你的加速前缀/">
+                   data-i18n-ph="customPlaceholder" placeholder="https://你的加速前缀/">
         </div>
-        <button class="help-btn" id="helpBtn" type="button">无法下载？</button>
+        <button class="help-btn" id="helpBtn" type="button" data-i18n="helpBtn">无法下载？</button>
         </div>
     </aside>
 
     <!-- 无法下载？提示弹窗 -->
     <div class="modal-mask hidden" id="helpMask">
-        <div class="modal" role="dialog" aria-modal="true" aria-label="无法下载">
+        <div class="modal" role="dialog" aria-modal="true" data-i18n-aria="helpTitle" aria-label="无法下载">
             <div class="modal-head">
-                <span>无法下载？</span>
-                <button class="modal-close" id="helpClose" type="button" aria-label="关闭">✕</button>
+                <span data-i18n="helpTitle">无法下载？</span>
+                <button class="modal-close" id="helpClose" type="button" data-i18n-aria="close" aria-label="关闭">✕</button>
             </div>
             <div class="modal-body">
                 <ul class="help-list">
-                    <li><span class="num">1.</span> 只差一点就下完却失败、或始终下不了：多为浏览器拦截，换 <b>Chrome / Edge / Firefox</b> 重试即可</li>
-                    <li><span class="num">2.</span> 免费通道可能失效或跑路：本站提供多家通路，换一条即可；仍不行,欢迎大家反馈,请点击 -> <a class="lc lc-up" id="upContact" href="https://message.bilibili.com/#/whisper/mid1476255996" target="_blank" rel="noopener" title="点击私信 UP"><span class="lc-core"><span class="lc-label">UP</span></span></a> <a class="up-name" href="https://message.bilibili.com/#/whisper/mid1476255996" target="_blank" rel="noopener" title="点击私信 UP">Elsht丨爱走弯路</a></li>
-                    <li><span class="num">3.</span> 有自己的加速地址可选「<span class="hl">自定义前缀</span>」，输入格式如：<b>https://你的加速前缀/</b></li>
-                    <li class="note">本站为非盈利站，只为方便你我这样的普通用户</li>
+                    <li data-i18n-html="help1"><span class="num">1.</span> 只差一点就下完却失败、或始终下不了：多为浏览器拦截，换 <b>Chrome / Edge / Firefox</b> 重试即可</li>
+                    <li><span class="num">2.</span> <span data-i18n="help2">免费通道可能失效或跑路：本站提供多家通路，换一条即可；仍不行,欢迎大家反馈,请点击 -&gt;</span> <a class="lc lc-up" id="upContact" href="https://message.bilibili.com/#/whisper/mid1476255996" target="_blank" rel="noopener" data-i18n-title="upTitle" title="点击私信 UP"><span class="lc-core"><span class="lc-label">UP</span></span></a> <a class="up-name" href="https://message.bilibili.com/#/whisper/mid1476255996" target="_blank" rel="noopener" data-i18n-title="upTitle" title="点击私信 UP">Elsht丨爱走弯路</a></li>
+                    <li data-i18n-html="help3"><span class="num">3.</span> 有自己的加速地址可选「<span class="hl">自定义前缀</span>」，输入格式如：<b>https://你的加速前缀/</b></li>
+                    <li class="note" data-i18n="help4">本站为非盈利站，只为方便你我这样的普通用户</li>
                 </ul>
             </div>
         </div>
@@ -1461,7 +1647,7 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
                     </svg>
                 </div>
                 <div class="hero-text">
-                    <h1 class="hero-title">多通道下载站</h1>
+                    <h1 class="hero-title" data-i18n="title">多通道下载站</h1>
                     <span class="site-motto" id="siteMotto"></span>
                 </div>
             </div>
@@ -1478,25 +1664,25 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
                             <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
                         </svg>
                         <input id="urlInput" type="text" spellcheck="false"
-                               placeholder="粘贴下载直链 / 官网 latest 跳转链接均可" autocomplete="off">
+                               data-i18n-ph="urlPlaceholder" placeholder="粘贴下载直链 / 官网 latest 跳转链接均可" autocomplete="off">
                     </div>
                     <div class="cmd-bar">
                         <div class="cmd-actions">
                             <button id="btnClear" class="lc lc-md lc-quiet is-idle" type="button"
-                                    title="清空输入并回到初始状态" aria-label="清空">
+                                    data-i18n-title="btnClearTitle" data-i18n-aria="btnClearAria" title="清空输入并回到初始状态" aria-label="清空">
                                 <span class="lc-core">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"
                                          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                         <path d="M6 6l12 12"/><path d="M18 6 6 18"/>
                                     </svg>
-                                    <span class="lc-label">清空</span>
+                                    <span class="lc-label" data-i18n="btnClear">清空</span>
                                 </span>
                             </button>
                             <button id="btnExtract" class="lc lc-lg lc-primary" type="button">
                                 <span class="lc-spot"></span>
                                 <span class="lc-core">
                                     <span class="spinner"></span>
-                                    <span class="lc-label" id="btnExtractText">提取</span>
+                                    <span class="lc-label" id="btnExtractText" data-i18n="btnExtract">提取</span>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
                                          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                         <path d="M5 12h13"/><path d="m12.5 6 6 6-6 6"/>
@@ -1514,10 +1700,10 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
         <div id="resultCard" class="card result hidden">
             <div class="result-head">
                 <div class="icon-well">
-                    <img id="iconPreview" alt="图标预览">
+                    <img id="iconPreview" data-i18n-alt="iconAlt" alt="图标预览">
                 </div>
                 <div class="result-meta">
-                    <div class="result-kicker">解析结果</div>
+                    <div class="result-kicker" data-i18n="resultKicker">解析结果</div>
                     <div class="result-url" id="iconUrl"></div>
                 </div>
             </div>
@@ -1532,14 +1718,14 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
                              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <path d="M12 4v10"/><path d="m7.5 10.5 4.5 4.5 4.5-4.5"/><path d="M5 19h14"/>
                         </svg>
-                        <span class="lc-label">下载</span>
+                        <span class="lc-label" data-i18n="download">下载</span>
                     </span>
                 </a>
                 <button id="btnCopy" class="lc lc-md lc-copy" type="button">
                     <span class="lc-spot"></span>
                     <span class="lc-core">
                         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4V2h11a2 2 0 0 1 2 2v13h-2V4H7Zm-2 3h11a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Zm0 2v11h11V9H5Z"/></svg>
-                        <span class="lc-label" id="btnCopyText">复制地址</span>
+                        <span class="lc-label" id="btnCopyText" data-i18n="copy">复制地址</span>
                     </span>
                 </button>
             </div>
@@ -1547,7 +1733,7 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
 
         <!-- 独立蛇模块（置底，确保结果卡片渲染在其上层） -->
         <div class="snake-module">
-            <img src="static/svg/snake-Light.svg" alt="动态贪吃蛇" draggable="false">
+            <img src="static/svg/snake-Light.svg" data-i18n-alt="snakeAlt" alt="动态贪吃蛇" draggable="false">
         </div>
     </main>
 </div>
@@ -1556,28 +1742,28 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
 <button class="lc lc-md thanks-fab" id="thanksBtn" type="button" aria-haspopup="dialog">
     <span class="lc-core">
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 20.5c-1.9-1.3-8.5-5.9-8.5-10.6A4.9 4.9 0 0 1 12 6.6a4.9 4.9 0 0 1 8.5 3.3c0 4.7-6.6 9.3-8.5 10.6Z"/></svg>
-        <span class="lc-label">感谢</span>
+        <span class="lc-label" data-i18n="thanks">感谢</span>
     </span>
 </button>
 
 <div class="modal-mask hidden" id="thanksMask">
-    <div class="modal thanks-modal" role="dialog" aria-modal="true" aria-label="感谢通路提供者">
+    <div class="modal thanks-modal" role="dialog" aria-modal="true" data-i18n-aria="thanksTitle" aria-label="感谢通路提供者">
         <div class="modal-head">
-            <span>感谢这些通路</span>
-            <button class="modal-close" id="thanksClose" type="button" aria-label="关闭">✕</button>
+            <span data-i18n="thanksHead">感谢这些通路</span>
+            <button class="modal-close" id="thanksClose" type="button" data-i18n-aria="close" aria-label="关闭">✕</button>
         </div>
         <div class="modal-body">
-            <p class="thanks-lead">本站只是把地址拼好，真正的下载速度来自下面这些公益通路与开源项目。免费节点往往自己贴钱维护，向维护者致谢。</p>
+            <p class="thanks-lead" data-i18n="thanksLead">本站只是把地址拼好，真正的下载速度来自下面这些公益通路与开源项目。免费节点往往自己贴钱维护，向维护者致谢。</p>
             <div class="thanks-grid">
                 <div class="thanks-chip is-static">
                     <span class="thanks-name">小帅加速</span>
                     <span class="thanks-host">g.z321.cc.cd</span>
-                    <span class="thanks-tag">自建</span>
+                    <span class="thanks-tag" data-i18n="thanksSelf">自建</span>
                 </div>
                 <div class="thanks-chip is-static">
                     <span class="thanks-name">小帅 GitHub</span>
                     <span class="thanks-host">777.z321.cc.cd</span>
-                    <span class="thanks-tag">自建</span>
+                    <span class="thanks-tag" data-i18n="thanksSelf">自建</span>
                 </div>
                 <a class="thanks-chip" href="https://xget.xi-xu.me/" target="_blank" rel="noopener">
                     <span class="thanks-name">Xget</span>
@@ -1596,7 +1782,7 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
                     <span class="thanks-host">gh-proxy.at9.net</span>
                 </a>
             </div>
-            <p class="thanks-foot">通路可能随时调整或停服，若维护者希望改名 / 补充链接 / 移除条目。</p>
+            <p class="thanks-foot" data-i18n="thanksFoot">通路可能随时调整或停服，若维护者希望改名 / 补充链接 / 移除条目。</p>
         </div>
     </div>
 </div>
@@ -1608,20 +1794,24 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
         // 已弃用（不再测速/排序/显示）：gh.llkk.cc、kkgithub 镜像、jsDelivr CDN
         // type: prefix=前缀拼接 | replace=域名替换 | custom=自定义前缀
         var PROXY_CHANNELS = [
-            { type: 'prefix',   name: '通用（小帅）',       value: 'https://g.z321.cc.cd/',     desc: 'https://g.z321.cc.cd/',     note: '你的小帅通道，任意直链' },
-            { type: 'prefix',   name: 'GitHub 专用（小帅）', value: 'https://777.z321.cc.cd/',   desc: 'https://777.z321.cc.cd/',   note: '你的小帅通道，GitHub 文件', ghOnly: true },
-            { type: 'xget',     name: 'Xget 加速',          value: 'https://xget.xi-xu.me/',    desc: 'https://xget.xi-xu.me/gh/', note: 'GitHub / GitLab / HuggingFace' },
-            { type: 'prefix',   name: 'gh-proxy.com',       value: 'https://gh-proxy.com/',     desc: 'https://gh-proxy.com/',     note: 'Release / Raw / Archive / Clone（仅 GitHub）', ghOnly: true },
-            { type: 'prefix',   name: 'ghproxy.net',        value: 'https://ghproxy.net/',      desc: 'https://ghproxy.net/',      note: 'Release / Archive / 单文件（仅 GitHub）', ghOnly: true },
-            { type: 'prefix',   name: 'gh-proxy.at9.net',   value: 'https://gh-proxy.at9.net/', desc: 'https://gh-proxy.at9.net/', note: 'Release / Raw / 直链（部分链路待验证）' },
-            { type: 'custom',   name: '自定义前缀',          value: '__custom__',               desc: '粘贴任意加速前缀',           note: '自己填加速站前缀，防单点失效' }
+            { type: 'prefix',   name: '通用（小帅）',       nk: 'chGen',   value: 'https://g.z321.cc.cd/',     desc: 'https://g.z321.cc.cd/',     note: '你的小帅通道，任意直链' },
+            { type: 'prefix',   name: 'GitHub 专用（小帅）', nk: 'chGh',    value: 'https://777.z321.cc.cd/',   desc: 'https://777.z321.cc.cd/',   note: '你的小帅通道，GitHub 文件', ghOnly: true },
+            { type: 'xget',     name: 'Xget 加速',          nk: 'chXget',  value: 'https://xget.xi-xu.me/',    desc: 'https://xget.xi-xu.me/gh/', note: 'GitHub / GitLab / HuggingFace' },
+            { type: 'prefix',   name: 'gh-proxy.com',       nk: 'chGhcom', value: 'https://gh-proxy.com/',     desc: 'https://gh-proxy.com/',     note: 'Release / Raw / Archive / Clone（仅 GitHub）', ghOnly: true },
+            { type: 'prefix',   name: 'ghproxy.net',        nk: 'chGhnet', value: 'https://ghproxy.net/',      desc: 'https://ghproxy.net/',      note: 'Release / Archive / 单文件（仅 GitHub）', ghOnly: true },
+            { type: 'prefix',   name: 'gh-proxy.at9.net',   nk: 'chAt9',   value: 'https://gh-proxy.at9.net/', desc: 'https://gh-proxy.at9.net/', note: 'Release / Raw / 直链（部分链路待验证）' },
+            { type: 'custom',   name: '自定义前缀',          nk: 'chCustom',value: '__custom__',               desc: '粘贴任意加速前缀',           note: '自己填加速站前缀，防单点失效' }
         ];
         /* 记录原始次序：非推荐通道不参与速度排序，按此次序保持原有位置 */
         for (var _ci = 0; _ci < PROXY_CHANNELS.length; _ci++) PROXY_CHANNELS[_ci]._order = _ci;
+        function chName(c) { return (c && c.nk && window.I18N) ? window.I18N.t(c.nk) : (c ? c.name : ''); }
 
         /* 通道类别标签（与下方主脚本的分类保持一致）：
            gh=GitHub 专用（蓝） / gen=通用直链（绿） / multi=多平台（紫） / custom=自定义（灰） */
-        var CAT_LABEL = { gh: 'GitHub', gen: '通用', multi: '多平台', custom: '自定义' };
+        var CAT_LABEL = { gh: 'catGh', gen: 'catGen', multi: 'catMulti', custom: 'catCustom' };
+        function catLabel(k) { return window.I18N ? window.I18N.t(CAT_LABEL[k] || k) : k; }
+        function i18nT(key) { return window.I18N ? window.I18N.t(key) : key; }
+        function i18nFmt(key, vars) { return window.I18N ? window.I18N.tf(key, vars) : key; }
         function channelCat(c) {
             if (c.type === 'xget') return 'multi';
             if (c.type === 'custom') return 'custom';
@@ -1822,17 +2012,18 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
                 var pct = (c.ok && maxK > 0 && c.kbps > 0) ? Math.max(4, Math.round(c.kbps / maxK * 100)) : 0;
                 var bar = (badge && c.ok && c.kbps > 0) ? '<span class="method-bar"><i class="' + barCls + '" style="width:' + pct + '%"></i></span>' : '';
                 var cat = channelCat(c);
-                var dataAttrs = ' data-name="' + c.name + '"'
+                var dataAttrs = ' data-name="' + chName(c) + '"'
                         + ' data-cat="' + cat + '"'
                         + ' data-speed="' + (c.speedText || '') + '"'
                         + ' data-ttfb="' + (c.ttfb || 0) + '"'
                         + ' data-total="' + (c.total || 0) + '"'
                         + ' data-ms="' + (c.ms || 0) + '"'
                         + ' data-status="' + status + '"';
+                var _t = window.I18N ? window.I18N.t : function(k){ return k; };
                 html += '<label class="method-item' + (isChecked ? ' active' : '') + '"' + dataAttrs + '>' +
                         '<input type="radio" name="method" value="' + c.value + '" data-type="' + c.type + '" data-cat="' + cat + '"' + (c.ghOnly ? ' data-ghonly="1"' : '') + (isChecked ? ' checked' : '') + '>' +
-                        '<span class="method-row"><span class="method-num">通路' + (j + 1) + '</span><span class="method-name">' + c.name + '</span>' +
-                        '<span class="cat-badge ' + cat + '">' + CAT_LABEL[cat] + '</span>' +
+                        '<span class="method-row"><span class="method-num">' + _t('methodNum').replace('{n}', j + 1) + '</span><span class="method-name">' + chName(c) + '</span>' +
+                        '<span class="cat-badge ' + cat + '">' + catLabel(cat) + '</span>' +
                         (badge ? '<span class="' + cls + '">' + badge + '</span>' : '') +
                         '</span>' +
                         bar +
@@ -1933,7 +2124,7 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
             var sum = document.getElementById('speedSummary');
             if (sum) {
                 if (!speedTested) {
-                    sum.innerHTML = '点击「测速」开始测速';
+                    sum.innerHTML = i18nT('speedHint');
                 } else {
                     var fastest = null;
                     for (var j = 0; j < PROXY_CHANNELS.length; j++) {
@@ -1944,9 +2135,9 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
                         var now = new Date();
                         var hh = ('0' + now.getHours()).slice(-2);
                         var mm = ('0' + now.getMinutes()).slice(-2);
-                        sum.innerHTML = '上次测速 ' + hh + ':' + mm + ' · 最快推荐 <b>' + fastest.name + ' ' + fastest.speedText + '</b>';
+                        sum.innerHTML = i18nFmt('sumLast', { time: hh + ':' + mm, name: chName(fastest), speed: fastest.speedText || '' });
                     } else {
-                        sum.innerHTML = '测速完成 · 暂无可用通道';
+                        sum.innerHTML = i18nT('sumDone');
                     }
                 }
             }
@@ -1964,7 +2155,8 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
             speedTested = true;   // 测速后按结果隐藏不可用通路
             var speedLabel = btn.querySelector('.lc-label');
             var oldText = speedLabel ? speedLabel.textContent : btn.textContent;
-            if (speedLabel) speedLabel.textContent = '测速中…'; else btn.textContent = '测速中…';
+            var _testing = window.I18N ? window.I18N.t('speedTesting') : '测速中…';
+            if (speedLabel) speedLabel.textContent = _testing; else btn.textContent = _testing;
 
             var jobs = PROXY_CHANNELS.map(function(c) {
                 var u = testUrlFor(c);
@@ -1985,12 +2177,12 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
                     c.kbps = (r.ms > 0 && r.total > 0) ? (r.total / 1024) / (r.ms / 1000) : 0;
                     if (r.total > 0 && r.total < 65536) c.kbps = 0;   // 小文件只测连接时间
                     if (r.ok) {
-                        if (r.total >= 65536) c.speedText = formatSpeed(c.kbps);
-                        else c.speedText = '连接 ' + c.ttfb + 'ms';
-                    } else if (r.err === 'timeout') { c.speedText = '未知'; c.unknown = true; }
-                    else if (r.err === 'noprefix') { c.speedText = '未填前缀'; }
-                    else if (r.err === 'cors') { c.speedText = '可下载·CORS'; c.corsOnly = true; }
-                    else { c.speedText = '未知'; c.unknown = true; }
+                        if (r.total >= 65536) { c.speedText = formatSpeed(c.kbps); c.speedKey = null; }
+                        else { c.speedKey = 'speedConnect'; c.speedVars = { ms: c.ttfb }; c.speedText = i18nFmt('speedConnect', c.speedVars); }
+                    } else if (r.err === 'timeout') { c.speedKey = 'speedUnknown'; c.speedText = i18nT('speedUnknown'); c.unknown = true; }
+                    else if (r.err === 'noprefix') { c.speedKey = 'speedNoPrefix'; c.speedText = i18nT('speedNoPrefix'); }
+                    else if (r.err === 'cors') { c.speedKey = 'speedCors'; c.speedText = i18nT('speedCors'); c.corsOnly = true; }
+                    else { c.speedKey = 'speedUnknown'; c.speedText = i18nT('speedUnknown'); c.unknown = true; }
                 });
 
                 // 适用性优先 + 速度排序 + 自动选中适用最快通道 + 更新摘要
@@ -2003,7 +2195,8 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
         }
 
         /* ===== 悬停浮层：展示该通道的测速明细（速度 / TTFB / 读取量 / 耗时 / 状态） ===== */
-        var TIP_STATUS = { ok: '通道可用', slow: '速度较慢', cors: 'CORS 受限 · 可直接下载', bad: '通道不可用', unknown: '未知', none: '尚未测速' };
+        var TIP_STATUS = { ok: 'stOk', slow: 'stSlow', cors: 'stCors', bad: 'stBad', unknown: 'stUnknown', none: 'stNone' };
+        function tipStatus(status) { return i18nT(TIP_STATUS[status] || status); }
 
         function fmtBytes(b) {
             b = +b || 0;
@@ -2028,17 +2221,17 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
             var status = item.getAttribute('data-status') || 'none';
             if (!speed && !ttfb && !total) {
                 return '<div class="tip-name">' + name + '</div>' +
-                       '<div class="tip-speed"><span class="tip-dot none"></span>未测速</div>' +
-                       '<div class="tip-status">点击「⇅ 测速排序」开始测速</div>';
+                       '<div class="tip-speed"><span class="tip-dot none"></span>' + i18nT('tipNone') + '</div>' +
+                       '<div class="tip-status">' + i18nT('tipHint') + '</div>';
             }
             var rows = '';
-            if (ttfb > 0) rows += '<div><span>首包 TTFB</span><b>' + ttfb + ' ms</b></div>';
-            if (total > 0) rows += '<div><span>读取数据</span><b>' + fmtBytes(total) + '</b></div>';
-            if (ms > 0) rows += '<div><span>测试耗时</span><b>' + fmtMs(ms) + '</b></div>';
+            if (ttfb > 0) rows += '<div><span>' + i18nT('tipTtfb') + '</span><b>' + ttfb + ' ms</b></div>';
+            if (total > 0) rows += '<div><span>' + i18nT('tipBytes') + '</span><b>' + fmtBytes(total) + '</b></div>';
+            if (ms > 0) rows += '<div><span>' + i18nT('tipElapsed') + '</span><b>' + fmtMs(ms) + '</b></div>';
             return '<div class="tip-name">' + name + '</div>' +
                    '<div class="tip-speed"><span class="tip-dot ' + status + '"></span>' + (speed || '—') + '</div>' +
                    (rows ? '<div class="tip-rows">' + rows + '</div>' : '') +
-                   '<div class="tip-status">状态：<b>' + (TIP_STATUS[status] || status) + '</b></div>';
+                   '<div class="tip-status">' + i18nT('tipStatus') + '<b>' + tipStatus(status) + '</b></div>';
         }
 
         var tipEl = document.createElement('div');
@@ -2089,6 +2282,20 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
         var btn = document.getElementById('btnSpeed');
         if (btn) btn.addEventListener('click', function() { runSpeedTest(btn); });
 
+        /* 语言切换：把已缓存的 speedText 按新语言重算，再重渲染列表与摘要（不改变测速结果/排序/选中） */
+        document.addEventListener('languagechange', function() {
+            for (var i = 0; i < PROXY_CHANNELS.length; i++) {
+                var c = PROXY_CHANNELS[i];
+                if (c.speedKey === 'speedConnect' && c.speedVars) c.speedText = i18nFmt('speedConnect', c.speedVars);
+                else if (c.speedKey) c.speedText = i18nT(c.speedKey);
+                /* speedKey 为空且 speedText 为 formatSpeed 的数字速度，与语言无关，保持不变 */
+            }
+            var lbl = btn && btn.querySelector('.lc-label');
+            if (lbl && !btn.disabled) lbl.textContent = i18nT('speedBtn');
+            if (window.__dlLinkType !== undefined) applyOrderAndSelect({ select: false });
+            else renderMethods();
+        });
+
         // 打开页面自动测速一次，之后每 5 分钟自动重测并重排（可手动随时触发）
         if (btn) {
             setTimeout(function() { runSpeedTest(btn); }, 1200);
@@ -2128,6 +2335,8 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
     var btnClear = document.getElementById('btnClear');
     var linkVisit = document.getElementById('linkVisit');
     var linkHint = document.getElementById('linkHint');
+    function i18nT(key) { return window.I18N ? window.I18N.t(key) : key; }
+    function i18nFmt(key, vars) { return window.I18N ? window.I18N.tf(key, vars) : key; }
 
     /* 点击提示卡里的通道标签 → 选中左侧对应通道（事件委托，绑定一次） */
     if (linkHint) {
@@ -2148,8 +2357,15 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
     var gen = 0;               // 提取轮次：清空后作废仍在返回途中的请求结果
     var fallbackNote = '';     // 本次拼接发生的通道回退说明（如不支持该站点改用通用通道）
 
+    var lastErrorKey = '';   /* 记录错误文案对应的字典 key，便于切换语言时重取 */
+    var ERROR_KEYS = ['errNoUrl','errBadUrl','errNoIcon','errRequest','errInvalidDownload',
+                      'errResolveFail','errCustomPrefix','errCopyFail','errLinkFormat','errKkgithub'];
     function showError(msg) {
         errorBox.textContent = msg;
+        lastErrorKey = '';
+        for (var i = 0; i < ERROR_KEYS.length; i++) {
+            if (msg === i18nT(ERROR_KEYS[i])) { lastErrorKey = ERROR_KEYS[i]; break; }
+        }
         errorBox.classList.remove('hidden');
     }
     function clearError() { errorBox.classList.add('hidden'); }
@@ -2157,7 +2373,7 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
     function setLoading(on) {
         btnExtract.disabled = on;
         btnExtract.classList.toggle('loading', on);
-        btnExtractText.textContent = on ? '提取中…' : '提取';
+        btnExtractText.textContent = i18nT(on ? 'extracting' : 'btnExtract');
     }
 
     /* 清空键的可用状态：输入框为空且结果卡已收起时压暗（功能仍可点，只是没东西可清） */
@@ -2221,19 +2437,19 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
        GitHub → gh（蓝）；GitLab / HuggingFace → multi（紫，仅 Xget 支持） */
     function detectLinkType(url) {
         var u;
-        try { u = new URL(url); } catch (e) { return { key: 'general', label: '普通直链', cls: 'general' }; }
+        try { u = new URL(url); } catch (e) { return { key: 'general', label: 'ltGeneral', cls: 'general' }; }
         var h = u.hostname.toLowerCase();
         if (h === 'github.com' || /\.github\.com$/.test(h) ||
             h === 'githubusercontent.com' || /\.githubusercontent\.com$/.test(h)) {
-            return { key: 'gh', label: 'GitHub 链接', cls: 'gh' };
+            return { key: 'gh', label: 'ltGh', cls: 'gh' };
         }
         if (h === 'gitlab.com' || /\.gitlab\.com$/.test(h)) {
-            return { key: 'multi', label: 'GitLab 链接', cls: 'multi' };
+            return { key: 'multi', label: 'ltGitlab', cls: 'multi' };
         }
         if (h === 'huggingface.co' || /\.huggingface\.co$/.test(h)) {
-            return { key: 'multi', label: 'HuggingFace 链接', cls: 'multi' };
+            return { key: 'multi', label: 'ltHf', cls: 'multi' };
         }
-        return { key: 'general', label: '普通直链', cls: 'general' };
+        return { key: 'general', label: 'ltGeneral', cls: 'general' };
     }
 
     /* 左侧通道标记：推荐通道描边高亮，非推荐通道淡化+删除线并沉到下方
@@ -2269,20 +2485,20 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
     /* 按链接类型推荐的具体通道；点击标签即选中左侧对应项（value 与 PROXY_CHANNELS 一致） */
     var HINT_RECOMMEND = {
         gh: [
-            { name: 'GitHub 专用（小帅）', value: 'https://777.z321.cc.cd/', cat: 'gh' },
-            { name: 'gh-proxy.com',       value: 'https://gh-proxy.com/',     cat: 'gh' },
-            { name: '通用（小帅）',        value: 'https://g.z321.cc.cd/',     cat: 'gen' },
-            { name: 'Xget 加速',          value: 'https://xget.xi-xu.me/',    cat: 'multi' },
-            { name: 'gh-proxy.at9.net',   value: 'https://gh-proxy.at9.net/', cat: 'gen' }
+            { name: 'GitHub 专用（小帅）', nk: 'chGh',    value: 'https://777.z321.cc.cd/', cat: 'gh' },
+            { name: 'gh-proxy.com',       nk: 'chGhcom', value: 'https://gh-proxy.com/',     cat: 'gh' },
+            { name: '通用（小帅）',        nk: 'chGen',   value: 'https://g.z321.cc.cd/',     cat: 'gen' },
+            { name: 'Xget 加速',          nk: 'chXget',  value: 'https://xget.xi-xu.me/',    cat: 'multi' },
+            { name: 'gh-proxy.at9.net',   nk: 'chAt9',   value: 'https://gh-proxy.at9.net/', cat: 'gen' }
         ],
         multi: [
-            { name: 'Xget 加速',     value: 'https://xget.xi-xu.me/', cat: 'multi' },
-            { name: '通用（小帅）',  value: 'https://g.z321.cc.cd/',  cat: 'gen' }
+            { name: 'Xget 加速',     nk: 'chXget', value: 'https://xget.xi-xu.me/', cat: 'multi' },
+            { name: '通用（小帅）',  nk: 'chGen',  value: 'https://g.z321.cc.cd/',  cat: 'gen' }
         ],
         general: [
-            { name: '通用（小帅）',      value: 'https://g.z321.cc.cd/',     cat: 'gen' },
-            { name: 'gh-proxy.at9.net', value: 'https://gh-proxy.at9.net/', cat: 'gen' },
-            { name: 'Xget 加速',        value: 'https://xget.xi-xu.me/',    cat: 'multi' }
+            { name: '通用（小帅）',      nk: 'chGen',  value: 'https://g.z321.cc.cd/',     cat: 'gen' },
+            { name: 'gh-proxy.at9.net', nk: 'chAt9',  value: 'https://gh-proxy.at9.net/', cat: 'gen' },
+            { name: 'Xget 加速',        nk: 'chXget', value: 'https://xget.xi-xu.me/',    cat: 'multi' }
         ]
     };
 
@@ -2325,13 +2541,14 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
             if (sa.group === 2) return sa.ttfb - sb.ttfb;
             return 0;
         });
-        var html = '<div class="lh-line"><span class="lh-badge">' + t.label +
-                   '</span>来自 <span class="host">' + host + '</span>，可选择以下通道：</div>' +
+        var html = '<div class="lh-line"><span class="lh-badge">' + i18nT(t.label) +
+                   '</span>' + i18nT('lhFrom') + ' <span class="host">' + host + '</span>' + i18nT('lhChoose') + '</div>' +
                    '<div class="lh-chips">' + rec.map(function(c) {
                        return '<button type="button" class="lh-chip cat-' + c.cat +
-                              '" data-value="' + c.value + '" title="点击选中左侧通道">' + c.name + '</button>';
+                              '" data-value="' + c.value + '" title="' + i18nT('lhChipTitle') + '">' + (c.nk ? i18nT(c.nk) : c.name) + '</button>';
                    }).join('') + '</div>';
-        if (fallbackNote) html += '<div class="lh-warn">⚠ ' + fallbackNote + '</div>';
+        if (fallbackNote) html += '<div class="lh-warn">⚠ ' +
+            i18nFmt(fallbackNote.key, fallbackNote.vars || {}) + '</div>';
         linkHint.className = 'link-hint ' + t.cls;
         linkHint.innerHTML = html;
         markChannelCompat(t);
@@ -2550,15 +2767,14 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
             var xl = xgetUrl(cleanUrl, ch.value);
             if (xl) return xl;
             /* Xget 不支持该站点：自动回退到通用前缀通道，保证链接始终可用（与帮助弹窗说明一致） */
-            fallbackNote = 'Xget 不支持该站点，已自动改用通用通道';
+            fallbackNote = { key: 'fallbackXget' };
             return 'https://g.z321.cc.cd/' + cleanUrl;
         }
         /* GitHub 专用通道（gh-proxy / ghproxy / 777 等）只代理 GitHub 域名：
            拼接非 GitHub 直链会拿到通道官网的 404 网页而非文件，
            自动回退到通用前缀通道，避免出现"点了却跳到网页不下载" */
         if (ch.ghOnly && !isGitHubHost(cleanUrl)) {
-            fallbackNote = ch.value.replace(/\/+$/, '').replace(/^https?:\/\//, '') +
-                           ' 仅支持 GitHub 链接，已自动改用通用通道';
+            fallbackNote = { key: 'fallbackGh', vars: { host: ch.value.replace(/\/+$/, '').replace(/^https?:\/\//, '') } };
             return 'https://g.z321.cc.cd/' + cleanUrl;
         }
         if (ch.type === 'prefix') return ch.value + cleanUrl;
@@ -2578,9 +2794,9 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
         if (ch.type === 'xget') return '';
         if (ch.type !== 'replace') return '';
         var u;
-        try { u = new URL(url); } catch (e) { return '链接格式不正确'; }
+        try { u = new URL(url); } catch (e) { return i18nT('errLinkFormat'); }
         if (u.hostname === 'github.com' || u.hostname === 'raw.githubusercontent.com') return '';
-        return 'kkgithub 镜像仅支持 github.com / raw.githubusercontent.com 链接';
+        return i18nT('errKkgithub');
     }
 
     /* 校验清洗后的链接是否为有效下载链接：
@@ -2629,16 +2845,16 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
     function resolveTarget(url) {
         for (var i = 0; i < LATEST_MAPPINGS.length; i++) {
             if (LATEST_MAPPINGS[i].re.test(url)) {
-                return Promise.resolve({ ok: true, url: LATEST_MAPPINGS[i].to, source: '内置规则映射' });
+                return Promise.resolve({ ok: true, url: LATEST_MAPPINGS[i].to, source: i18nT('resolveBuiltin') });
             }
         }
         return fetch('/api/resolve?url=' + encodeURIComponent(url))
             .then(function(res) { return res.json().catch(function() { return null; }); })
             .then(function(d) {
-                if (d && d.ok && d.url) return { ok: true, url: d.url, source: '服务端重定向解析' };
-                return { ok: false, error: (d && d.error) || '解析失败' };
+                if (d && d.ok && d.url) return { ok: true, url: d.url, source: i18nT('resolveServer') };
+                return { ok: false, error: (d && d.error) || i18nT('resolveFail') };
             })
-            .catch(function() { return { ok: false, error: '解析服务不可用' }; });
+            .catch(function() { return { ok: false, error: i18nT('resolveUnavailable') }; });
     }
 
     /* 确保 cleanUrl 为可下载直链：latest/跳转链接先解析，成功则替换并记提示 */
@@ -2648,7 +2864,7 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
         return resolveTarget(cleanUrl).then(function(r) {
             if (r.ok && isValidDownloadLink(r.url)) {
                 cleanUrl = normalizeUrl(r.url);
-                resolvedNote = '已解析为最新版本直链';
+                resolvedNote = i18nT('resolvedNote');
                 return true;
             }
             return false;
@@ -2658,10 +2874,10 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
     /* 复制 / 下载前置守卫：直链直接放行；latest/跳转链接先解析；失败给出可读错误 */
     function guardAndRun(onReady, onFail) {
         if (isValidDownloadLink(cleanUrl)) { onReady(); return; }
-        if (!isResolvableLink(cleanUrl)) { onFail('请输入有效的下载链接'); return; }
+        if (!isResolvableLink(cleanUrl)) { onFail(i18nT('errInvalidDownload')); return; }
         ensureDirectLink().then(function(ok) {
             if (ok) { onReady(); return; }
-            onFail('该链接未能解析出可下载直链，请直接粘贴 release 资产地址');
+            onFail(i18nT('errResolveFail'));
         });
     }
 
@@ -2670,7 +2886,7 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
         resultCard.classList.add('hidden');
 
         var raw = input.value.trim();
-        if (!raw) { showError('请输入网址'); return; }
+        if (!raw) { showError(i18nT('errNoUrl')); return; }
 
         var myGen = ++gen;   // 本轮提取的编号：被清空/重新提取后，旧结果不再落地
 
@@ -2686,7 +2902,7 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
             blobConverted = cleanUrl !== before;
             target = new URL(cleanUrl);
         } catch (e) {
-            showError('网址格式不正确，请检查后重试');
+            showError(i18nT('errBadUrl'));
             return;
         }
 
@@ -2710,16 +2926,16 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
                     return browserProbeIcon(target).then(function(nativeUrl) {
                         if (myGen !== gen) return null;
                         if (nativeUrl) {
-                            showResult({ url: nativeUrl, preview: nativeUrl, source: '本地探测 ' + nativeUrl.replace(/^https?:\/\//, '') });
+                            showResult({ url: nativeUrl, preview: nativeUrl, source: i18nT('localProbe') + ' ' + nativeUrl.replace(/^https?:\/\//, '') });
                             return null;
                         }
                         if (data) { showResult(data); return null; }
-                        showError((r.data && r.data.error) ? r.data.error : '未找到图标，请检查网址是否正确');
+                        showError((r.data && r.data.error) ? r.data.error : i18nT('errNoIcon'));
                     });
                 })
                 .catch(function() {
                     if (myGen !== gen) return;
-                    showError('请求失败，请检查网络后重试');
+                    showError(i18nT('errRequest'));
                 })
                 .then(function() {
                     if (myGen !== gen) return;
@@ -2739,15 +2955,15 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
             var reason = channelAccepts(cleanUrl);
             if (reason) { showError(reason); return; }
             var link = buildAccelLink();
-            if (!link) { showError('请先填写有效的自定义前缀'); return; }
+            if (!link) { showError(i18nT('errCustomPrefix')); return; }
             syncFallbackNote();
             copyText(link).then(function(ok) {
-                if (!ok) { showError('复制失败，请手动选中文本复制'); return; }
+                if (!ok) { showError(i18nT('errCopyFail')); return; }
                 clearError();
-                if (btnCopyText) btnCopyText.textContent = '已复制 ✓'; else btnCopy.textContent = '已复制 ✓';
+                if (btnCopyText) btnCopyText.textContent = i18nT('copied'); else btnCopy.textContent = i18nT('copied');
                 btnCopy.classList.add('copied');
                 setTimeout(function() {
-                    if (btnCopyText) btnCopyText.textContent = '复制地址'; else btnCopy.textContent = '复制地址';
+                    if (btnCopyText) btnCopyText.textContent = i18nT('copy'); else btnCopy.textContent = i18nT('copy');
                     btnCopy.classList.remove('copied');
                 }, 1500);
             });
@@ -2761,10 +2977,19 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
             var reason = channelAccepts(cleanUrl);
             if (reason) { showError(reason); return; }
             var link = buildAccelLink();
-            if (!link) { showError('请先填写有效的自定义前缀'); return; }
+            if (!link) { showError(i18nT('errCustomPrefix')); return; }
             syncFallbackNote();
             window.open(link, '_blank', 'noopener,noreferrer');
         }, showError);
+    });
+
+    /* 语言切换：结果卡提示、按钮文字、错误条同步为当前语言 */
+    document.addEventListener('languagechange', function() {
+        if (btnExtractText) btnExtractText.textContent = i18nT(btnExtract.classList.contains('loading') ? 'extracting' : 'btnExtract');
+        if (btnCopyText && !btnCopy.classList.contains('copied')) btnCopyText.textContent = i18nT('copy');
+        if (cleanUrl && linkHint && !linkHint.classList.contains('hidden')) renderLinkHint();
+        /* 固定错误文案按新语言重取；服务端返回的原文（lastErrorKey 为空）保持不变 */
+        if (!errorBox.classList.contains('hidden') && lastErrorKey) errorBox.textContent = i18nT(lastErrorKey);
     });
 })();
 </script>
@@ -2935,12 +3160,8 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
     var el = document.getElementById('siteMotto');
     if (!el) return;
 
-    var MOTTO_TEXTS = [
-        'GitHub Release · 直链通吃',
-        'latest 跳转链接 · 自动解析',
-        '多通道测速 · 智能排序',
-        '自定义前缀 · 防单点失效'
-    ];
+    var MOTTO_KEYS = ['motto1', 'motto2', 'motto3', 'motto4'];
+    function mottoText(key) { return window.I18N ? window.I18N.t(key) : key; }
     var INTERVAL = 180;   // 每字间隔(ms)
 
     var mottoIndex = 0;
@@ -2948,9 +3169,14 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
     var deleting = false;
     var pauseTicks = 0;
 
+    /* 语言切换：重置打字机，从新语言第一句重新开始 */
+    document.addEventListener('languagechange', function() {
+        mottoIndex = 0; charIndex = 0; deleting = false; pauseTicks = 0; el.textContent = '';
+    });
+
     function tick() {
         if (pauseTicks-- > 0) return; // 停顿中
-        var text = MOTTO_TEXTS[mottoIndex];
+        var text = mottoText(MOTTO_KEYS[mottoIndex]);
         if (!deleting) {
             charIndex++;
             el.textContent = text.slice(0, charIndex);
@@ -2960,7 +3186,7 @@ button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3p
             el.textContent = text.slice(0, charIndex);
             if (charIndex === 0) {
                 deleting = false;
-                mottoIndex = (mottoIndex + 1) % MOTTO_TEXTS.length; // 切下一句
+                mottoIndex = (mottoIndex + 1) % MOTTO_KEYS.length; // 切下一句
                 pauseTicks = 10;
             }
         }
